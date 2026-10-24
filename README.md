@@ -37,6 +37,16 @@ The complete native exercise was verified on October 24, 2026: episode `038f8dc1
 
 The test suite has 91 passing tests, including native transport integration using authenticated task pulls and durable callbacks, partial-round rejection, approvals, branching, evidence isolation and replay. Native services were restarted after the test; episodes persist on disk.
 
+## Presenting the demo
+
+The default screen focuses on the spread map, its two outcome numbers, and a compact Image check / Your response panel. The main button guides Observe → Verify → Respond → Impact. Review and approval remain separate clicks; editing reviewed copy requires a fresh review. Completed runs can replay their recorded frames from the same button.
+
+Execution mode, diagnostics, full agent status, branches, recordings, uploads and JSON imports are available under **Advanced controls & run details**. The mode badge always distinguishes scripted demos, native live agents and replays. The conversation preview shows up to three distinct recent reactions.
+
+For a reliable presentation choose **Scripted demo** in Advanced, then **New run**. This does not claim a live model run. Live mode continues to use the configured providers and displays failures without substituting fixtures.
+
+Demo flow checks: `node tests/test_demo_flow.cjs`.
+
 ## Gemini evidence and Voiskey integration
 
 `origin/gemini` is merged into the same native Grokbots desk. Start an episode, choose **Analyze exercise image**, then **Draft corrections**. The board shows image evidence boxes, Prosecutor and Defender arguments, the Judge verdict/confidence/reasoning, and missing evidence. Evidence request buttons prepare text without sending it. Arbitrary image uploads are always analyzed live and never receive unrelated fixture findings.
