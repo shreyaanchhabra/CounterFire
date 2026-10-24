@@ -1,0 +1,112 @@
+{
+  "framings": [
+    {
+      "framing_key": "A",
+      "scores": [
+        {
+          "group_id": 0,
+          "belief_drop": 0.333,
+          "reaction": "Okay, I'll unpack the car."
+        },
+        {
+          "group_id": 1,
+          "belief_drop": 0.267,
+          "reaction": "Gracias, ya lo compartí con el grupo."
+        },
+        {
+          "group_id": 2,
+          "belief_drop": 0.4,
+          "reaction": "Deleting my post. My bad."
+        },
+        {
+          "group_id": 3,
+          "belief_drop": 0.233,
+          "reaction": "Thank you, I was so scared."
+        },
+        {
+          "group_id": 4,
+          "belief_drop": 1,
+          "reaction": "Confirmed with CAL FIRE. Updating."
+        },
+        {
+          "group_id": 5,
+          "belief_drop": 0.833,
+          "reaction": "Fine, but show me the map."
+        }
+      ],
+      "es_group_en_only_drop": 0.067
+    },
+    {
+      "framing_key": "B",
+      "scores": [
+        {
+          "group_id": 0,
+          "belief_drop": 0.8,
+          "reaction": "Okay, I'll unpack the car."
+        },
+        {
+          "group_id": 1,
+          "belief_drop": 0.667,
+          "reaction": "Gracias, ya lo compartí con el grupo."
+        },
+        {
+          "group_id": 2,
+          "belief_drop": 0.533,
+          "reaction": "Deleting my post. My bad."
+        },
+        {
+          "group_id": 3,
+          "belief_drop": 0.6,
+          "reaction": "Thank you, I was so scared."
+        },
+        {
+          "group_id": 4,
+          "belief_drop": 0.933,
+          "reaction": "Confirmed with CAL FIRE. Updating."
+        },
+        {
+          "group_id": 5,
+          "belief_drop": 0.667,
+          "reaction": "Fine, but show me the map."
+        }
+      ],
+      "es_group_en_only_drop": 0.167
+    },
+    {
+      "framing_key": "C",
+      "scores": [
+        {
+          "group_id": 0,
+          "belief_drop": 0.6,
+          "reaction": "Okay, I'll unpack the car."
+        },
+        {
+          "group_id": 1,
+          "belief_drop": 0.467,
+          "reaction": "Gracias, ya lo compartí con el grupo."
+        },
+        {
+          "group_id": 2,
+          "belief_drop": 0.733,
+          "reaction": "Deleting my post. My bad."
+        },
+        {
+          "group_id": 3,
+          "belief_drop": 0.533,
+          "reaction": "Thank you, I was so scared."
+        },
+        {
+          "group_id": 4,
+          "belief_drop": 0.6,
+          "reaction": "Confirmed with CAL FIRE. Updating."
+        },
+        {
+          "group_id": 5,
+          "belief_drop": 0.4,
+          "reaction": "Fine, but show me the map."
+        }
+      ],
+      "es_group_en_only_drop": 0.117
+    }
+  ]
+}

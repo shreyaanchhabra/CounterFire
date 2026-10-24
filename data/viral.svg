@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="660" viewBox="0 0 360 220">
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22100a"/><stop offset=".5" stop-color="#7a2610"/><stop offset=".62" stop-color="#d9592a"/><stop offset="1" stop-color="#3a1a10"/></linearGradient>
+          </defs>
+          <rect width="360" height="220" fill="url(#sky)"/>
+          <ellipse cx="250" cy="50" rx="110" ry="40" fill="#3a2621" opacity=".75"/>
+          <ellipse cx="300" cy="80" rx="80" ry="28" fill="#4a2c22" opacity=".6"/>
+          <path d="M0 130 L50 112 L105 122 L160 104 L220 118 L290 100 L360 116 L360 150 L0 150Z" fill="#1c0d08"/>
+          <g fill="#ff8a3d"><path d="M235 120 l8 -30 l7 22 l6 -34 l8 40 l7 -18 l6 20 z"/><path d="M285 118 l7 -24 l6 16 l8 -36 l7 30 l6 -12 l5 26 z"/></g>
+          <g fill="#ffd166"><path d="M246 120 l5 -16 l5 14 l5 -20 l5 22z"/><path d="M296 118 l5 -14 l6 12 l5 -18 l4 20z"/></g>
+          <path d="M120 220 L172 132 L188 132 L300 220Z" fill="#2a221d"/>
+          <g stroke="#cdbb9f" stroke-width="2" stroke-dasharray="7 9"><line x1="200" y1="220" x2="180" y2="134"/></g>
+          <line x1="215" y1="132" x2="215" y2="108" stroke="#9a9a9a" stroke-width="2"/><line x1="287" y1="132" x2="287" y2="108" stroke="#9a9a9a" stroke-width="2"/>
+          <rect x="210" y="74" width="82" height="34" rx="2" fill="#1f6b3a" stroke="#e8e8e8" stroke-width="1.2"/>
+          <text x="251" y="90" fill="#fff" font-size="11" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle">101 NORTH</text>
+          <text x="251" y="102" fill="#fff" font-size="7.5" font-family="Arial, sans-serif" text-anchor="middle">Scottsdale Rd · 1 mile</text>
+          <rect x="128" y="178" width="34" height="14" rx="3" fill="#0e0e10"/><rect x="132" y="172" width="22" height="9" rx="2" fill="#1a1a1e"/>
+          <ellipse cx="128" cy="194" rx="20" ry="3.5" fill="#000" opacity=".6"/>
+          
+          
+        </svg>

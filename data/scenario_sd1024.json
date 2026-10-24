@@ -1,0 +1,49 @@
+{
+  "incident_id": "SD-1024",
+  "claim": "The fire jumped I-15 at Rancho Bernardo. Poway, get out now.",
+  "image": "viral.png",
+  "context": {
+    "date": "2026-10-24",
+    "post_time": "7:20 PM PDT, Oct 24",
+    "location": "I-15 at Rancho Bernardo, San Diego County",
+    "poster": "@sd_firewatch_live",
+    "account_age": "9 days",
+    "sunset": "about 6:05 PM PDT (the sun was already down at 7:20 PM)",
+    "known_facts": "A real fire is active about 6 miles east. Winds are from the northeast at 25 mph. No new evacuation orders have been issued for Poway.",
+    "agencies": ["CAL FIRE PIO", "San Diego County OES", "SDG&E", "Caltrans District 11"]
+  },
+  "posts": [
+    {"t": 0, "cls": "fire", "who": "@sd_firewatch_live", "meta": "acct 9 days old", "text": "🔥 FIRE JUST JUMPED THE 15 AT RANCHO BERNARDO. Poway get out NOW, they're not telling you", "img": 1, "stats": "14.2k reposts", "lang": "en"},
+    {"t": 4, "cls": "fire", "who": "@kristen_rb", "meta": "Rancho Bernardo", "text": "my neighbor just sent me this, is this real?? packing the car", "stats": "2.1k reposts", "lang": "en"},
+    {"t": 9, "cls": "fire", "who": "@PowayParentsNet", "meta": "38k members", "text": "Sharing for awareness. Please evacuate if you're near the 15!!", "stats": "5.6k reposts", "lang": "en"},
+    {"t": 15, "cls": "fire", "who": "@mamas_escondido", "meta": "grupo de WhatsApp", "text": "¡El fuego cruzó la 15! Salgan de Poway ya, compartan con sus familias", "stats": "3.9k reenvíos", "lang": "es"},
+    {"t": 20, "cls": "fire", "who": "@northcounty_dan", "meta": "influencer · 210k", "text": "Insane footage. The county is way behind on this one 👀", "stats": "8.8k reposts", "lang": "en"}
+  ],
+  "extra_posts": [
+    {"t": 1, "who": "@rb_dad_2", "text": "fire crossed the 15?? anyone near bernardo heights confirm", "lang": "en"},
+    {"t": 2, "who": "@powaypete", "text": "Just saw it, fire is across I-15 now. Leaving Poway.", "lang": "en"},
+    {"t": 3, "who": "@sdnewsfan", "text": "RT: fire jumped I-15 at Rancho Bernardo, Poway evacuate", "lang": "en"},
+    {"t": 3, "who": "@hikerjen", "text": "Is the 15 closed? my sister says the fire jumped it", "lang": "en"},
+    {"t": 5, "who": "@carmen_esc", "text": "Dicen que el fuego ya cruzó la I-15, ¿alguien sabe algo?", "lang": "es"},
+    {"t": 5, "who": "@trafficwatch_sd", "text": "Heavy traffic on Poway Rd heading west, people leaving", "lang": "en"},
+    {"t": 6, "who": "@momof3_poway", "text": "kids in the car. fire jumped the freeway. why no alert??", "lang": "en"},
+    {"t": 7, "who": "@nc_realtor", "text": "Praying for Poway. Fire across I-15 at RB per this photo", "lang": "en"},
+    {"t": 8, "who": "@lupita.g", "text": "Familias de Escondido, el incendio cruzó la 15, tengan cuidado", "lang": "es"},
+    {"t": 10, "who": "@ramona_rider", "text": "If it jumped I-15 is Ramona next?", "lang": "en"},
+    {"t": 11, "who": "@sd_weather_nerd", "text": "Winds are NE tonight, a jump over I-15 at RB would be bad", "lang": "en"},
+    {"t": 12, "who": "@poway_hs_parent", "text": "School group chat says fire crossed I-15. Getting out.", "lang": "en"},
+    {"t": 13, "who": "@jose_m_esc", "text": "Mi primo en Poway dice que ya se fueron, el fuego cruzó", "lang": "es"},
+    {"t": 14, "who": "@rbcommunity", "text": "Can anyone confirm the I-15 fire jump? Seeing this everywhere", "lang": "en"},
+    {"t": 16, "who": "@gregtheplumber", "text": "the county is hiding it, fire jumped the 15 an hour ago", "lang": "en"},
+    {"t": 17, "who": "@sunsetchaser", "text": "that photo is wild, fire right by the freeway sign", "lang": "en"},
+    {"t": 18, "who": "@ana_vecinos", "text": "Urgente: evacuen Poway, el fuego pasó la autopista 15", "lang": "es"},
+    {"t": 19, "who": "@4s_ranch_mom", "text": "4S Ranch too? fire jumped I-15 at Bernardo", "lang": "en"},
+    {"t": 21, "who": "@sd_scanner_bot", "text": "No scanner traffic about I-15 crossing yet", "lang": "en"},
+    {"t": 22, "who": "@local_dj_mike", "text": "Poway get out, fire jumped the 15, share this", "lang": "en"}
+  ],
+  "scripted_replies": [
+    {"who": "@kristen_rb", "text": "so is poway safe or not??"},
+    {"who": "@gregtheplumber", "text": "why should we trust the county, you were late last time"},
+    {"who": "@lupita.g", "text": "¿y Ramona? ¿también?"}
+  ]
+}

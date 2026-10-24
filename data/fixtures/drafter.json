@@ -1,0 +1,22 @@
+{
+  "framings": [
+    {
+      "key": "A",
+      "name": "Fact check",
+      "text_en": "FALSE: This photo is from a 2019 fire in Arizona. The fire has not crossed I-15.",
+      "text_es": "FALSO: Esta foto es de un incendio de 2019 en Arizona. El fuego no ha cruzado la I-15."
+    },
+    {
+      "key": "B",
+      "name": "Action first",
+      "text_en": "Poway: no new evacuation orders. The fire has NOT crossed I-15. Stay off the roads so crews can move. The viral photo is from 2019.",
+      "text_es": "Poway: no hay nuevas órdenes de evacuación. El fuego NO ha cruzado la I-15. Eviten las calles para que los bomberos puedan pasar. La foto viral es de 2019."
+    },
+    {
+      "key": "C",
+      "name": "Neighbor voice",
+      "text_en": "Rancho Bernardo resident on a livestream right now: I-15 is clear, crews are on the ridge. That viral photo is from 2019.",
+      "text_es": "Vecina de Rancho Bernardo en vivo ahora: la I-15 está despejada, los bomberos están en la loma. Esa foto viral es de 2019."
+    }
+  ]
+}

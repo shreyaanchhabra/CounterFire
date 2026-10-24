@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Firebreak Response Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Fire<span>break</span></h1>
+      <p>Misinformation response desk for county emergency comms</p>
+    </div>
+    <div class="meta">
+      <span class="chip red">Red Flag Warning · Santa Ana winds</span>
+      <span class="chip">Demo scenario · fictional incident</span>
+      <span class="clock" id="clock">T+<b>0</b> min · 7:18 PM</span>
+      <button class="btn sm primary" id="startBtn">Start scenario</button>
+    </div>
+  </header>
+
+  <div class="pipe-scroll" aria-label="Agent pipeline">
+    <div class="pipe">
+      <div class="agent" data-agent="scout"><div class="row"><span class="dot idle"></span>Scout<span class="model grok">Grok</span></div><small>Idle</small></div>
+      <span class="arrow">›</span>
+      <div class="agent" data-agent="prosecutor"><div class="row"><span class="dot idle"></span>Prosecutor<span class="model gemini">Gemini</span></div><small>Idle</small></div>
+      <span class="arrow">›</span>
+      <div class="agent" data-agent="defender"><div class="row"><span class="dot idle"></span>Defender<span class="model gemini">Gemini</span></div><small>Idle</small></div>
+      <span class="arrow">›</span>
+      <div class="agent" data-agent="judge"><div class="row"><span class="dot idle"></span>Judge<span class="model gemini">Gemini</span></div><small>Idle</small></div>
+      <span class="arrow">›</span>
+      <div class="agent" data-agent="drafter"><div class="row"><span class="dot idle"></span>Drafter<span class="model grok">Grok</span></div><small>Idle</small></div>
+      <span class="arrow">›</span>
+      <div class="agent" data-agent="society"><div class="row"><span class="dot idle"></span>Society Sim<span class="model grok">Grok</span></div><small>Idle</small></div>
+      <span class="arrow">›</span>
+      <div class="agent" data-agent="editor"><div class="row"><span class="dot idle"></span>Editor<span class="model voiskey">Voiskey</span></div><small id="edSmall">Idle</small></div>
+      <span class="arrow">›</span>
+      <div class="agent" data-agent="broadcaster"><div class="row"><span class="dot idle" id="bcDot"></span>Broadcaster<span class="model grok">Grok</span></div><small id="bcSmall">Idle</small></div>
+    </div>
+  </div>
+
+  <main class="grid">
+    <!-- FEED -->
+    <section class="p feed" aria-labelledby="feedH">
+      <div class="ph"><h2 id="feedH">Scout feed</h2><span class="label">Live</span></div>
+      <div class="incident">
+        <div class="id" id="incId">INCIDENT SD-1024 · waiting for Scout</div>
+        <h3 id="incClaim">&nbsp;</h3>
+        <div class="vel">
+          <div><div class="label">Velocity</div><div class="num" id="vel">0<small>posts/min</small></div></div>
+          <canvas id="spark" aria-label="Post velocity over time"></canvas>
+        </div>
+      </div>
+      <div class="posts" id="posts" aria-live="polite"></div>
+    </section>
+
+    <!-- MAP -->
+    <section class="p mapp" aria-labelledby="mapH">
+      <div class="ph">
+        <h2 id="mapH">Spread map</h2>
+        <div class="legend">
+          <span><i style="background:var(--faint)"></i>Hasn't seen it</span>
+          <span><i style="background:var(--ember);box-shadow:0 0 6px var(--ember)"></i>Believes and sharing</span>
+          <span><i style="background:var(--ember-dim)"></i>Believes</span>
+          <span><i style="background:var(--water);box-shadow:0 0 6px var(--water)"></i>Sharing correction</span>
+          <span><i style="background:var(--water-dim)"></i>Corrected</span>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat f"><div class="label">Believing now</div><div class="v" id="sBel">0%</div></div>
+        <div class="stat w"><div class="label">Corrected</div><div class="v" id="sCor">0%</div></div>
+        <div class="stat"><div class="label">Est. residents misled</div><div class="v" id="sRes">0</div></div>
+      </div>
+      <div class="mapbox">
+        <canvas id="map" aria-label="Network of 240 simulated accounts in six communities showing the rumor and correction spreading"></canvas>
+        <div class="callout" id="callout" hidden>
+          <p id="calloutText"></p>
+          <button class="btn primary" id="approve2">Approve and broadcast</button>
+        </div>
+      </div>
+      <div class="transport">
+        <button class="btn icon" id="play" aria-label="Play">▶</button>
+        <input type="range" id="scrub" min="0" max="90" step="0.1" value="0" aria-label="Timeline">
+        <span class="tlabel" id="tLabel">T+0</span>
+      </div>
+      <div class="whatif">
+        <div>
+          <div class="label">What if we corrected at</div>
+          <div class="transport" style="margin-top:6px">
+            <input type="range" id="whatif" min="4" max="70" step="1" value="24" aria-label="Correction time">
+            <span class="tlabel" id="wLabel">T+24</span>
+          </div>
+          <div class="cf">
+            <div><div class="k">T+10</div><div class="n" id="cf10">–</div><small>still believe</small></div>
+            <div class="me"><div class="k" id="cfMeK">T+24</div><div class="n" id="cfMe">–</div><small>still believe</small></div>
+            <div><div class="k">Never</div><div class="n" id="cfNo">–</div><small>still believe</small></div>
+          </div>
+        </div>
+        <div>
+          <div class="label">Network over time · rumor vs correction</div>
+          <canvas id="chart" aria-label="Share of network believing and corrected over 90 minutes"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- EVIDENCE -->
+    <section class="p ev" aria-labelledby="evH">
+      <div class="ph"><h2 id="evH">Evidence board</h2>
+        <div style="display:flex;gap:8px;align-items:center"><span class="label" id="evLabel">Gemini vision</span>
+          <button class="btn sm" id="anBtn">Analyze a new image</button>
+          <input type="file" id="anFile" accept="image/*" hidden></div>
+      </div>
+      <div class="photo" id="photo">
+        <img id="evImg" alt="Viral photo attached to the post">
+        <div class="boxes" id="evBoxes"></div>
+        <svg id="evSvg" hidden viewBox="0 0 360 220" role="img" aria-label="Viral photo of fire beside a freeway">
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22100a"/><stop offset=".5" stop-color="#7a2610"/><stop offset=".62" stop-color="#d9592a"/><stop offset="1" stop-color="#3a1a10"/></linearGradient>
+          </defs>
+          <rect width="360" height="220" fill="url(#sky)"/>
+          <ellipse cx="250" cy="50" rx="110" ry="40" fill="#3a2621" opacity=".75"/>
+          <ellipse cx="300" cy="80" rx="80" ry="28" fill="#4a2c22" opacity=".6"/>
+          <path d="M0 130 L50 112 L105 122 L160 104 L220 118 L290 100 L360 116 L360 150 L0 150Z" fill="#1c0d08"/>
+          <g fill="#ff8a3d"><path d="M235 120 l8 -30 l7 22 l6 -34 l8 40 l7 -18 l6 20 z"/><path d="M285 118 l7 -24 l6 16 l8 -36 l7 30 l6 -12 l5 26 z"/></g>
+          <g fill="#ffd166"><path d="M246 120 l5 -16 l5 14 l5 -20 l5 22z"/><path d="M296 118 l5 -14 l6 12 l5 -18 l4 20z"/></g>
+          <path d="M120 220 L172 132 L188 132 L300 220Z" fill="#2a221d"/>
+          <g stroke="#cdbb9f" stroke-width="2" stroke-dasharray="7 9"><line x1="200" y1="220" x2="180" y2="134"/></g>
+          <line x1="215" y1="132" x2="215" y2="108" stroke="#9a9a9a" stroke-width="2"/><line x1="287" y1="132" x2="287" y2="108" stroke="#9a9a9a" stroke-width="2"/>
+          <rect x="210" y="74" width="82" height="34" rx="2" fill="#1f6b3a" stroke="#e8e8e8" stroke-width="1.2"/>
+          <text x="251" y="90" fill="#fff" font-size="11" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle">101 NORTH</text>
+          <text x="251" y="102" fill="#fff" font-size="7.5" font-family="Arial, sans-serif" text-anchor="middle">Scottsdale Rd · 1 mile</text>
+          <rect x="128" y="178" width="34" height="14" rx="3" fill="#0e0e10"/><rect x="132" y="172" width="22" height="9" rx="2" fill="#1a1a1e"/>
+          <ellipse cx="128" cy="194" rx="20" ry="3.5" fill="#000" opacity=".6"/>
+        </svg>
+      </div>
+      <ul class="finds" id="finds"></ul>
+      <div class="debate">
+        <div class="side pro"><h4>Prosecutor <span class="model gemini">Gemini</span></h4><ul id="proList"></ul></div>
+        <div class="side def"><h4>Defender <span class="model gemini">Gemini</span></h4><ul id="defList"></ul></div>
+      </div>
+      <div class="verdict">
+        <div class="vtop">
+          <div><div class="label">Judge verdict</div><div class="vword" id="vword">–</div></div>
+          <div class="conf"><div class="label" style="display:flex;justify-content:space-between"><span>Confidence</span><span id="confPct">–</span></div><div class="bar"><i id="confBar" style="width:0%"></i></div></div>
+        </div>
+        <div class="label">Missing evidence</div>
+        <div class="miss" id="miss"></div>
+      </div>
+    </section>
+
+    <!-- CORRECTION LAB -->
+    <section class="p lab" aria-labelledby="labH">
+      <div class="ph"><h2 id="labH">Correction lab</h2><span class="label">Society Sim · 20 Grok personas</span></div>
+      <p class="hint">Each framing was shown to every persona group. Cells show predicted drop in belief. Pick one and the map reruns.</p>
+      <div class="heatkey" aria-hidden="true" id="heatkeyTpl" hidden></div>
+      <div class="framings" id="framings"></div>
+    </section>
+
+    <!-- EDITOR -->
+    <section class="p ed" aria-labelledby="edH">
+      <div class="ph"><h2 id="edH">Editor</h2><span class="model voiskey">Voiskey</span></div>
+      <div class="mic">
+        <button class="micbtn" id="mic" aria-label="Hold to talk"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1a7 7 0 0 0 6-6.9z"/></svg></button>
+        <div class="wave" id="wave" aria-hidden="true"></div>
+      </div>
+      <div class="edtools"><span class="label">Hold the mic and talk</span><button class="linkbtn" id="replayBtn">Replay demo dictation</button></div>
+      <div class="raw" id="raw"></div>
+      <div class="langs"><span class="label">Languages</span>
+        <button class="lang" aria-pressed="true" disabled>English</button>
+        <button class="lang" id="esBtn" aria-pressed="true">Español</button>
+      </div>
+      <div class="outs" id="outs">
+        <div class="out"><div class="oh"><span>EN · X / Nextdoor</span><span id="enLen"></span></div><p id="enOut"></p></div>
+        <div class="out" id="esCard"><div class="oh"><span>ES · X / WhatsApp groups</span><span id="esLen"></span></div><p id="esOut"></p></div>
+      </div>
+      <div class="approve">
+        <button class="btn primary" id="approve">Approve and broadcast</button>
+        <span class="note" id="apNote">Nothing posts without your approval.</span>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" hidden></div>
+<script src="/static/sim.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>
