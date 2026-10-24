@@ -121,6 +121,19 @@ class AppTests(unittest.TestCase):
             self.assertEqual(self.client.post(path,json=packet).status_code,422)
         self.assertEqual(self.manager.view(view['id'])['evidence'],view['evidence'])
 
+    def test_no_correction_recording_replays_without_an_approval_and_retains_source(self):
+        view=self.decision_point();p=f'/api/episodes/{view["id"]}'
+        view=self.post(p+'/branch',{'kind':'none'})
+        view=self.advance(self.advance(view))
+        record=self.post(p+'/record')
+        replay=self.post('/api/episodes',{'mode':'replay','recording_id':record['recording_id']})
+        for _ in range(4):replay=self.advance(replay)
+        self.assertEqual(replay['status'],'complete')
+        self.assertIsNone(replay['approval'])
+        second=self.post(f'/api/episodes/{replay["id"]}/record')
+        listing=self.client.get('/api/recordings').json()
+        self.assertEqual(next(r['source_mode'] for r in listing if r['id']==second['recording_id']),'fixture')
+
 
 if __name__=='__main__':
     unittest.main()

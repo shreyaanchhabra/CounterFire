@@ -2,13 +2,50 @@
 
 Grok agents for a misinformation response desk: detect a shared claim, draft bilingual responses, compare fictional audience reactions, and prepare approved corrections for an in-app feed.
 
-Implemented: **Scout, Drafter, Society Sim, and Broadcaster**. The original HTML and simulation are unchanged. Frontend wiring, FastAPI, Gemini verification, and Voiskey editing are separate work.
+Implemented: the connected FastAPI desk, native Grokbots Scout/Drafter/Broadcaster, six autonomous community Bots, the social environment, exact-copy intervention approval, counterfactual branches, and durable recording/replay. Gemini verification and Voiskey transcription are teammate integrations; the desk accepts their normalized JSON. The original `firebreak-ui.html` remains available at `/baseline`.
+
+## Run the connected app
+
+Install `requirements.txt`, then run in two terminals:
+
+```sh
+python3 -m uvicorn backend.main:app_factory --factory --host 127.0.0.1 --port 8000 --no-access-log
+python3 -m uvicorn backend.grokbots_return:app_factory --factory --host 127.0.0.1 --port 8766 --no-access-log
+```
+
+Open http://127.0.0.1:8000. Fixture mode needs no credentials. Start, advance two rounds, choose/edit a correction, propose the exact copy, approve it, and advance two further rounds. Save a completed trajectory to replay it. Replays require fresh approval of the recorded correction and display their source mode.
+
+Live mode uses **official Grokbots routine webhooks**, without the community CLI or an xAI API key. Configure all six community URL/key pairs and Comms URL/key in `.env` using `.env.example`. Group IDs: 0 Poway, 1 Escondido, 2 Influencers, 3 Retirees, 4 Reporters, 5 Skeptics. Native routines are `Firebreak community round`; Trial's existing `Firebreak webhook connectivity` routine handles Scout, Drafter and Broadcaster.
+
+Expose **only port 8766** through an HTTPS tunnel and set `GROKBOTS_CALLBACK_BASE_URL` to its origin. Keep the control/UI server on loopback. Each native routine must explicitly allow that exact tunnel hostname for `GET /api/tasks/{request_id}` and `POST /api/results/{request_id}`; when a temporary hostname changes, update `.env` and all seven routine allowlists. A temporary tunnel must remain running throughout live episodes. See [native routine setup](docs/grokbots-routines.md).
+
+The compact trigger includes a scoped task URL and expiring bearer capability. The Bot fetches its full observation and response schema, then submits one result. This avoids native webhook context truncation. The receiver exposes no controls, files, docs or job list. No automatic POST retry or fixture fallback occurs. Pending requests, errors, mode and provenance remain visible.
+
+## What the simulation does
+
+Twenty fictional personas represent 240 accounts on the original 705-edge graph. Each native community Bot decides once per persona per round using only that persona's received messages, belief/history and local feedback. Python validates every decision and applies all six communities atomically. Shares travel through actual graph edges; verification queues supplied evidence for a later round; Spanish comprehension and source trust are observable inputs. Receiving a correction does not itself change belief. Neutral map nodes include unseen accounts and exposed accounts that have not adopted either claim; community detail panels report actual exposure separately.
+
+Two rounds lead to the approval decision point. Approved copy is seeded into chosen communities, followed by two response rounds. Counterfactual branches fork the same pre-intervention state with independent memories. They compare computed simulated outcomes, not predictive population estimates. Feedback is logged for analysis; model weights are **not trained with reinforcement learning**.
+
+The local API accepts evidence at `POST /api/episodes/{id}/evidence` with `verdict`, `verified_facts`, optional `incident_id`, findings, reasoning, source_refs and revision. No Gemini findings are fabricated in live mode. Normalized Voiskey input uses `{framing_key, text_en, text_es, target_groups}` through the editor, then the same proposal/hash approval path. Broadcaster replies use actual community questions or explicitly supplied question JSON and remain inside the app.
+
+`cache/society/` stores episodes, branch histories and recordings; `cache/grokbots/jobs.sqlite3` stores task/result audit data. Both are ignored. Do not expose the UI server or share `.env`.
+
+## Verification
+
+The complete native exercise was verified on October 24, 2026: episode `038f8dc1-ba99-47a2-b33a-14abe3f9b0de` completed Scout, four six-community rounds, three bilingual drafts, exact-copy approval and two bilingual Broadcaster replies. Its evidence was an explicitly labeled fictional exercise bulletin, not a Gemini result. Recording `3d46185c-903f-4ac9-ae68-b43606535f7c` replayed with identical frames/feed and a fresh approval. These local audit IDs are not credentials.
+
+The test suite has 80 passing tests, including native transport integration using authenticated task pulls and durable callbacks, partial-round rejection, approvals, branching, evidence isolation and replay. Native services were restarted after the test; episodes persist on disk.
+
+## Legacy API/CLI adapters
+
+The sections below also document the original optional xAI API adapter and its fixture demo. The connected desk above uses native routine webhooks.
 
 ## Official Grokbots webhook transport
 
 The project also has an official-routine HTTP sender in `backend/clients/grokbots_webhook.py`. This is independent of the xAI API and the optional community `gbot` CLI. It triggers an existing native Bot routine using the URL and bearer key shown by Grokbots. See [the official routine documentation](https://cursor.com/help/grok-bot/routines).
 
-Trial has a webhook-only routine named **Firebreak webhook connectivity**. It echoes a request ID and synthetic observation in Trial's chat. To open its settings, use the routine link in chat. If the normal card only opens the routine list, ask Trial for the direct in-app **Webhook URL** settings link.
+Trial has a webhook-only routine named **Firebreak webhook connectivity**. It now routes typed Comms tasks and returns authenticated results; legacy connectivity echoes remain supported. To open its settings, use the routine link in chat. If the normal card only opens the routine list, ask Trial for the direct in-app **Webhook URL** settings link.
 
 Put the displayed URL and key in the ignored `.env` file as `GROKBOTS_WEBHOOK_URL` and `GROKBOTS_WEBHOOK_KEY`, then run:
 

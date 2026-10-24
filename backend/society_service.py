@@ -394,7 +394,8 @@ class EpisodeManager:
             e=self._load(identifier);self._check_mutation(e);b=e['branches'][e['active']]
             if b['sim'].round<4:raise Conflict('Only completed four-round trajectories can be recorded')
             rid=str(uuid4())
-            value={'id':rid,'source_mode':e['mode'],'name':f'{e["mode"]} · {e["active"]} · {rid[:8]}',
+            source_mode=e['recording']['source_mode'] if e['recording'] else e['mode']
+            value={'id':rid,'source_mode':source_mode,'name':f'{source_mode} · {e["active"]} · {rid[:8]}',
                    'states':b['history'],'drafts':e['drafts'],'evidence':e['evidence'],'scout':e['scout'],'intervention':b['intervention']}
             (self.directory/'recordings'/(rid+'.json')).write_text(canonical(value))
             return {**self.view(identifier),'recording_id':rid}
