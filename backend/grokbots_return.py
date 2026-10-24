@@ -25,6 +25,7 @@ class RoundTask(BaseModel):
     round_id: int = Field(ge=0)
     group_id: int = Field(ge=0, le=5)
     observation: dict
+    task_type: Literal["action", "community", "scout", "draft", "broadcast"] = "action"
 
 
 class ActionPacket(BaseModel):
@@ -53,13 +54,14 @@ def canonical(value):
 
 
 def callback_observation(task: RoundTask, job: PendingJob, callback_base: str) -> dict:
+    from backend.bot_contracts import result_schema
     origin = urlsplit(callback_base)
     if (origin.scheme != "https" or not origin.hostname or origin.username or origin.password
             or origin.query or origin.fragment or origin.path not in {"", "/"}):
         raise ValueError("Callback base must be an HTTPS origin without credentials, path, query, or fragment")
     return {"task": task.model_dump(mode="json"), "observation_hash": job.observation_hash,
             "callback": {"url": callback_base.rstrip("/") + "/api/results/" + job.request_id,
-                         "token": job.callback_token}, "result_schema": ActionPacket.model_json_schema()}
+                         "token": job.callback_token}, "result_schema": result_schema(task.task_type).model_json_schema()}
 
 
 class JobStore:
@@ -96,7 +98,8 @@ class JobStore:
             pending = connection.execute("SELECT request_id, task FROM jobs WHERE status='pending'").fetchall()
             for row in pending:
                 previous = json.loads(row["task"])
-                if previous["episode_id"] == task.episode_id and previous["group_id"] == task.group_id:
+                if (previous["episode_id"] == task.episode_id and previous["group_id"] == task.group_id
+                        and previous.get("task_type", "action") == task.task_type):
                     connection.execute("UPDATE jobs SET status='superseded' WHERE request_id=?", (row["request_id"],))
             connection.execute("INSERT INTO jobs VALUES (?, ?, ?, ?, ?, 'pending', NULL, NULL)",
                 (job.request_id, encoded, digest, hashlib.sha256(token.encode()).hexdigest(), job.expires_at))
@@ -134,6 +137,8 @@ class JobStore:
             if (packet.request_id != request_id or packet.observation_hash != row["observation_hash"] or
                     any(getattr(packet, key) != task[key] for key in ("episode_id", "round_id", "group_id"))):
                 raise HTTPException(409, "Result does not match the task observation")
+            if task.get('task_type')=='community' and packet.payload.group_id!=packet.group_id:
+                raise HTTPException(409,'Community payload does not match its task group')
             encoded = canonical(packet.model_dump(mode="json"))
             if row["status"] == "completed":
                 if encoded != row["result"]:
@@ -148,20 +153,36 @@ def create_app(store: JobStore) -> FastAPI:
     app = FastAPI(title="Firebreak task result receiver", docs_url=None, redoc_url=None,
                   openapi_url=None, redirect_slashes=False)
 
+    @app.get('/api/tasks/{request_id}')
+    def task(request_id: str, request: Request):
+        from fastapi.responses import JSONResponse
+        from backend.bot_contracts import result_schema
+        auth=request.headers.get('authorization','')
+        if not auth.startswith('Bearer '):raise HTTPException(401,'Task capability required')
+        row=store.authorize(request_id,auth[7:])
+        if row['expires_at'] < time.time():raise HTTPException(410,'Task expired')
+        if row['status']!='pending':raise HTTPException(409,'Task is no longer pending')
+        task=json.loads(row['task'])
+        return JSONResponse({'request_id':request_id,'task':task,'observation_hash':row['observation_hash'],
+                             'result_schema':result_schema(task.get('task_type','action')).model_json_schema()},
+                            headers={'Cache-Control':'no-store'})
+
     @app.post("/api/results/{request_id}")
     async def receive(request_id: str, request: Request):
+        from backend.bot_contracts import result_schema
         authorization = request.headers.get("authorization", "")
         if not authorization.startswith("Bearer "):
             raise HTTPException(401, "Task capability required")
         token = authorization[7:]
-        store.authorize(request_id, token)
+        row = store.authorize(request_id, token)
         body = bytearray()
         async for chunk in request.stream():
             body.extend(chunk)
             if len(body) > 65536:
                 raise HTTPException(413, "Result exceeds 64 KiB")
         try:
-            packet = ActionPacket.model_validate_json(bytes(body))
+            kind = json.loads(row["task"]).get("task_type", "action")
+            packet = result_schema(kind).model_validate_json(bytes(body))
         except ValidationError:
             # Pydantic's default error includes input values. Do not echo them publicly.
             raise HTTPException(422, "Result does not match the action schema") from None

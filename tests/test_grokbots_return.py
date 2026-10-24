@@ -76,6 +76,19 @@ class ReturnTests(unittest.TestCase):
         for path in ["/", "/docs", "/openapi.json", "/api/jobs", "/api/approve"]:
             self.assertEqual(self.client.get(path).status_code, 404)
 
+    def test_scoped_task_pull_requires_capability_and_expires(self):
+        path=f'/api/tasks/{self.job.request_id}'
+        self.assertEqual(self.client.get(path).status_code,401)
+        headers={'Authorization':'Bearer '+self.job.callback_token}
+        response=self.client.get(path,headers=headers)
+        self.assertEqual(response.status_code,200)
+        self.assertEqual(response.json()['task']['observation'],self.task.observation)
+        self.assertEqual(response.json()['observation_hash'],self.job.observation_hash)
+        self.assertNotIn('token',response.text)
+        self.assertEqual(response.headers['cache-control'],'no-store')
+        self.post()
+        self.assertEqual(self.client.get(path,headers=headers).status_code,409)
+
     def test_dispatch_packet_contains_task_scoped_callback_and_result_schema(self):
         packet = callback_observation(self.task, self.job, "https://example.trycloudflare.com")
         self.assertEqual(packet["callback"]["url"], "https://example.trycloudflare.com/api/results/" + self.job.request_id)
