@@ -60,7 +60,10 @@ class EpisodeEvidence:
                         e['analysis'].update(status='done');b['status']=previous;self._touch(e)
                 except Exception as exc:
                     with self.lock:
-                        e['analysis'].update(status='error',error=f'Gemini analysis failed ({type(exc).__name__}). Check credentials or quota and retry.')
+                        code=getattr(exc,'code',None)
+                        hint='Provider temporarily unavailable; retry later.' if code in (500,502,503,504) else 'Check credentials or quota and retry.'
+                        label=f'{type(exc).__name__}; HTTP {code}' if isinstance(code,int) else type(exc).__name__
+                        e['analysis'].update(status='error',error=f'Gemini analysis failed ({label}). {hint} Previous evidence is unchanged.')
                         e['analysis']['stages']={k:('error' if v=='running' else v) for k,v in e['analysis']['stages'].items()}
                         b['status']=previous;self._touch(e)
             self.workers[identifier]=self.pool.submit(work)

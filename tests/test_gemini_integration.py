@@ -82,6 +82,20 @@ class GeminiIntegrationTests(unittest.TestCase):
         self.assertIsNone(response.json()['editor'])
         self.assertIsNone(response.json()['editor_status'])
 
+    def test_running_image_analysis_does_not_claim_society_agents_are_running(self):
+        import threading
+        from backend import pipeline
+        original=pipeline.analyze;started=threading.Event();release=threading.Event()
+        self.addCleanup(release.set)
+        async def held(*args,**kwargs):
+            started.set();await asyncio.to_thread(release.wait,5)
+            return await original(*args,**kwargs)
+        with patch.object(pipeline,'analyze',side_effect=held):
+            self.client.post(self.path+'/analyze',json={});self.assertTrue(started.wait(1))
+            view=self.manager.view(self.view['id'])
+            try:self.assertEqual(next(p['status'] for p in view['pipeline'] if p['agent']=='society'),'waiting')
+            finally:release.set();self.settle()
+
 
 class GeminiChainTests(unittest.IsolatedAsyncioTestCase):
     async def test_parallel_arguments_finish_before_judge_and_packet_keeps_image_identity(self):
@@ -132,5 +146,24 @@ class GeminiSessionTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsNot(a,b)
         for value in clients:
             value.aio.aclose.assert_awaited_once();value.close.assert_called_once()
+
+    async def test_transient_provider_error_retries_once_then_returns_real_result(self):
+        from backend.clients import gemini_client as gc
+        from types import SimpleNamespace
+        result=object()
+        generate=AsyncMock(side_effect=[gc.errors.ServerError(504,{'error':{'message':'temporary'}}),result])
+        fake=SimpleNamespace(aio=SimpleNamespace(models=SimpleNamespace(generate_content=generate)))
+        with patch.object(gc,'client',return_value=fake),patch.object(gc.config,'GEMINI_FALLBACK_MODELS',[]),patch('asyncio.sleep',new=AsyncMock()):
+            self.assertIs(await gc._generate('synthetic-model',[],{}),result)
+        self.assertEqual(generate.await_count,2)
+
+    async def test_provider_retries_are_bounded_and_do_not_return_a_fixture(self):
+        from backend.clients import gemini_client as gc
+        from types import SimpleNamespace
+        generate=AsyncMock(side_effect=gc.errors.ServerError(503,{'error':{'message':'temporary'}}))
+        fake=SimpleNamespace(aio=SimpleNamespace(models=SimpleNamespace(generate_content=generate)))
+        with patch.object(gc,'client',return_value=fake),patch.object(gc.config,'GEMINI_FALLBACK_MODELS',[]),patch('asyncio.sleep',new=AsyncMock()):
+            with self.assertRaises(gc.errors.ServerError):await gc._generate('synthetic-model',[],{})
+        self.assertEqual(generate.await_count,2)
 
 if __name__=='__main__':unittest.main()

@@ -35,13 +35,13 @@ The local API accepts evidence at `POST /api/episodes/{id}/evidence` with `verdi
 
 The complete native exercise was verified on October 24, 2026: episode `038f8dc1-ba99-47a2-b33a-14abe3f9b0de` completed Scout, four six-community rounds, three bilingual drafts, exact-copy approval and two bilingual Broadcaster replies. Its evidence was an explicitly labeled fictional exercise bulletin, not a Gemini result. Recording `3d46185c-903f-4ac9-ae68-b43606535f7c` replayed with identical frames/feed and a fresh approval. These local audit IDs are not credentials.
 
-The test suite has 88 passing tests, including native transport integration using authenticated task pulls and durable callbacks, partial-round rejection, approvals, branching, evidence isolation and replay. Native services were restarted after the test; episodes persist on disk.
+The test suite has 91 passing tests, including native transport integration using authenticated task pulls and durable callbacks, partial-round rejection, approvals, branching, evidence isolation and replay. Native services were restarted after the test; episodes persist on disk.
 
 ## Gemini evidence and Voiskey integration
 
 `origin/gemini` is merged into the same native Grokbots desk. Start an episode, choose **Analyze exercise image**, then **Draft corrections**. The board shows image evidence boxes, Prosecutor and Defender arguments, the Judge verdict/confidence/reasoning, and missing evidence. Evidence request buttons prepare text without sending it. Arbitrary image uploads are always analyzed live and never receive unrelated fixture findings.
 
-Fixture mode loads the teammate's clearly labeled exercise fixtures; live analysis needs `GEMINI_API_KEY` in `.env`. Optional `GEMINI_MODEL`, `GEMINI_JUDGE_MODEL` and comma-separated `GEMINI_FALLBACK_MODEL` configure the merged client. Install the updated requirements (`google-genai` and `python-multipart` included). This laptop currently has no Gemini key, so integration is verified with fixtures and mocked live boundaries rather than a live Gemini response. Native Grokbots remain on their existing official webhook transport.
+Fixture mode loads the teammate's clearly labeled exercise fixtures; live analysis needs `GEMINI_API_KEY` in `.env`. Optional `GEMINI_MODEL`, `GEMINI_JUDGE_MODEL` and comma-separated `GEMINI_FALLBACK_MODEL` configure the merged client. Install the updated requirements (`google-genai` and `python-multipart` included). The suite validates the integration with fixtures and mocked API boundaries without requiring keys. Live analysis uses the local Gemini key. Native Grokbots remain on their existing official webhook transport.
 
 Type or use Voiskey desktop dictation in the Comms officer note, then choose **Apply note to draft**. Gemini parses the note into editable copy; the hold-to-record button optionally sends audio to Gemini. Fixture mode shows a scripted edit explicitly. Load the edited copy, review it, propose it and explicitly approve its hash at round two. An interpreted spoken approval never automatically approves anything. Changing evidence clears old dictation results and proposals; after approval, evidence is frozen.
 
@@ -181,3 +181,5 @@ python3 -m unittest discover -v
 ```
 
 Tests cover SDK request formatting, output validation and failure branches, timestamp velocity, approval, exact approved copy, reply IDs, score mapping, cache isolation and recovery, and full offline generation/replay through the CLI. No API key is needed.
+
+Live Gemini connectivity was checked after integration: the supplied local key lists models successfully, and some debate calls returned outputs, but subsequent generation checks hit provider quota/gateway errors (429/504). A complete live Gemini-to-Grokbots episode has not been verified. The client retries transient 5xx once within stage deadlines and can try configured fallback models; no live failure is replaced by fixture evidence. The complete browser workflow was verified in explicitly labeled fixture mode.

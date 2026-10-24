@@ -175,6 +175,7 @@ class EpisodeManager(EpisodeEvidence):
             status=b['status']
             analysis=e.get('analysis') or {}
             stages=analysis.get('stages',{})
+            active_jobs={p['task_type'] for p in e['pending_jobs']} if status=='running' else set()
             pipeline=[{'agent':'scout','status':'done' if e['scout'] else 'waiting','summary':e['scout']['summary'] if e['scout'] else 'Waiting for incident clustering'},
                 {'agent':'judge','status':'done' if e['evidence'] else 'waiting','summary':(e['evidence'].get('verdict','Imported evidence') if e['evidence'] else 'Awaiting teammate Gemini packet')},
                 {'agent':'drafter','status':'done' if e['drafts'] else 'waiting','summary':'Three bilingual corrections' if e['drafts'] else 'Needs evidence and drafting'},
@@ -186,6 +187,11 @@ class EpisodeManager(EpisodeEvidence):
                                        'summary':'Gemini image debate' if analysis.get('source')=='gemini' else 'Evidence assessment'})
             for p in pipeline:
                 if p['agent']=='judge' and stages.get('judge'):p['status']=stages['judge']
+                if p['agent']=='scout' and 'scout' in active_jobs:p['status']='running'
+                if p['agent']=='drafter' and 'draft' in active_jobs:p['status']='running'
+                if p['agent']=='society':p['status']='running' if 'community' in active_jobs else 'done' if b['sim'].round else 'waiting'
+                if p['agent']=='editor':p['status']=(e.get('editor_status') or {}).get('status','ready')
+                if p['agent']=='broadcaster' and 'broadcast' in active_jobs:p['status']='running'
             view.update(id=e['id'],mode=e['mode'],status=status,version=e['version'],error=e['error'],
                 pipeline=pipeline,drafts=copy.deepcopy(e['drafts']),evidence=copy.deepcopy(e['evidence']),
                 pending_intervention=copy.deepcopy(b['pending']),approval=copy.deepcopy(b['approval']),branches=branches,
