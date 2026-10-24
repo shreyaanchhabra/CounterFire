@@ -54,7 +54,7 @@ For every round:
 5. It updates belief/exposure state and computes feedback from explicit scenario rules.
 6. Each Bot receives the outcomes of its actions and updates its local episode memory before the next round.
 
-The Python scheduler starts each Bot round through that Bot's official webhook routine. A single Start action in our interface dispatches the required rounds and waits for validated results. HTTP 200 means accepted, not completed. A callback or Bot tool must submit structured actions before the scheduler advances; this result path remains to be proved. The scheduler never silently calls the xAI model API to impersonate a native Bot.
+The Python scheduler will start each Bot round through that Bot's official webhook routine. A single Start action in our interface will dispatch the required rounds and wait for validated results. HTTP 200 means accepted, not completed. The authenticated callback path is now proven for Trial: it submitted a structured action that Python validated and persisted. Six-community scheduling and integration with the map remain to be built. The scheduler must never silently call the xAI model API to impersonate a native Bot.
 
 Use a round barrier. No community sees other communities' not-yet-committed choices from the same round. If a Bot times out, pause live mode or use a clearly labeled scripted no-op after operator selection. Never invent a Bot completion or silently swap in another scenario's recording.
 
@@ -126,7 +126,7 @@ Official docs describe shared `/workspace` files, browser/terminal access, nativ
 - https://docs.x.ai/grok-bot/chat-and-collaboration
 - https://cursor.com/help/grok-bot/routines
 
-Selected transport: keep Python and the dashboard on the Mac. Each community has a webhook-only routine created through the native Grokbots interface. Python posts scoped observations to those official endpoints using routine bearer keys kept server-side in `.env`. The response only acknowledges dispatch. We must add an authenticated result-submission endpoint or Bot tool reachable from the Bot's cloud computer. Localhost on the Mac is not automatically reachable from that computer. Any public callback exposure or deployment needs its own concrete setup and review.
+Selected transport: keep Python and the dashboard on the Mac. Each community will have a webhook-only routine created through the native Grokbots interface. Python posts scoped observations to those official endpoints using routine bearer keys kept server-side in `.env`. The response only acknowledges dispatch. A separate callback-only FastAPI service now validates and persists returned actions, with expiring task capabilities, identity/hash checks, duplicate protection, and no public app/static/approval routes. A temporary Cloudflare tunnel was used for the authorized live test and then stopped. Localhost on the Mac is not automatically reachable from the cloud computer; a new deployment must explicitly establish callback reachability and pin the allowed origin.
 
 Connectivity proof completed October 24, 2026: Trial's `Firebreak webhook connectivity` routine accepted a synthetic observation with HTTP 200 and returned its matching request ID and unchanged data in the native chat. The sender and smoke command are implemented in `backend/clients/grokbots_webhook.py` and `scripts/test_grokbots_webhook.py`. This proves dispatch and native execution, not automated result ingestion or six-agent orchestration. Five sender tests pass, along with the existing suite.
 
@@ -148,7 +148,7 @@ A recorded replay starts a new presentation session referencing archived traject
 
 ## 12. Execution plan after approval
 
-1. **Complete the feasibility spike:** official dispatch to Trial is proven. Next establish authenticated result submission, then two native Bots, a tiny graph, two rounds, one delivered cross-group message, and one human-approved intervention. Measure latency and prove no per-round human routing or xAI key is needed. Stop and revisit transport if this fails.
+1. **Complete the feasibility spike:** official dispatch and authenticated action return from Trial are proven. Next use two native Bots, a tiny graph, two rounds, one delivered cross-group message, and one human-approved intervention. Measure latency and prove no per-round human routing or xAI key is needed. Stop and revisit transport if this fails.
 2. **Environment core:** implement local observations, action validation, message routing, state transitions, memory, feedback, and append-only event trajectories. Test private-state leakage, duplicate/stale actions, edges, budgets, and reproducible replay.
 3. **Six-community episode:** map 20 personas onto 240 accounts and run the bounded pre/post-intervention episode. Show emergent sharing and replies. No scripted required outcome or assumed group behavior.
 4. **Integration contracts:** accept teammate-owned Gemini packets and normalized intervention packets. Do not implement their services. Bind approvals to exact copy and episode state.
