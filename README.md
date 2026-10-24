@@ -4,6 +4,24 @@ Grok agents for a misinformation response desk: detect a shared claim, draft bil
 
 Implemented: **Scout, Drafter, Society Sim, and Broadcaster**. The original HTML and simulation are unchanged. Frontend wiring, FastAPI, Gemini verification, and Voiskey editing are separate work.
 
+## Official Grokbots webhook transport
+
+The project also has an official-routine HTTP sender in `backend/clients/grokbots_webhook.py`. This is independent of the xAI API and the optional community `gbot` CLI. It triggers an existing native Bot routine using the URL and bearer key shown by Grokbots. See [the official routine documentation](https://cursor.com/help/grok-bot/routines).
+
+Trial has a webhook-only routine named **Firebreak webhook connectivity**. It echoes a request ID and synthetic observation in Trial's chat. To open its settings, use the routine link in chat. If the normal card only opens the routine list, ask Trial for the direct in-app **Webhook URL** settings link.
+
+Put the displayed URL and key in the ignored `.env` file as `GROKBOTS_WEBHOOK_URL` and `GROKBOTS_WEBHOOK_KEY`, then run:
+
+```sh
+python3 scripts/test_grokbots_webhook.py
+```
+
+The sender makes one request and prints a receipt with a correlation ID. HTTP 200 means the run started, not that the Bot finished. Verify the matching ID and echoed observation in Trial's chat. Unknown delivery is not retried automatically. Keys, response bodies, and URLs are excluded from receipts; redirects are refused.
+
+This initial routine returns results in the native chat only. A callback or Bot tool that submits validated actions to our simulator is the next integration step. Do not treat the trigger alone as a completed dashboard integration.
+
+Live connectivity verified on October 24, 2026: the sender received HTTP 200, and Trial echoed request ID `firebreak-official-smoke-20261024-01` with the exact synthetic observation in its native chat. This test used the official routine webhook, with no xAI API key or community CLI. Credentials are stored only in the ignored local `.env`.
+
 ## Run without an API key
 
 Requires Python 3.11 or newer. From the project directory:

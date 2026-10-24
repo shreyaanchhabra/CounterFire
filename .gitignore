@@ -6,3 +6,5 @@ __pycache__/
 *.py[cod]
 cache/
 .pytest_cache/
+node_modules/
+.gbot-state/
