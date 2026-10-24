@@ -19,6 +19,7 @@ Output:
 - confidence from 0 to 100. Be calibrated: only go above 90 if location or provenance evidence is decisive.
 - reasoning: one or two plain sentences.
 - missing: up to 2 pieces of evidence that would most change your confidence, each with who to ask.
+  item is a short noun phrase under 40 characters, like "Original file from uploader" or "Fire perimeter after 7:30 PM".
   ask_target must be one of: {targets}."""
 
 
@@ -37,5 +38,5 @@ async def run(claim: str, pro: ProsecutorOut, defn: DefenderOut, targets: list[s
         verdict=out.verdict,
         confidence=max(0, min(100, out.confidence)),
         reasoning=short(out.reasoning, 240),
-        missing=[MissingEvidence(item=short(m.item, 60), ask_target=m.ask_target) for m in out.missing[:2]],
+        missing=[MissingEvidence(item=short(m.item, 70), ask_target=m.ask_target) for m in out.missing[:2]],
     )

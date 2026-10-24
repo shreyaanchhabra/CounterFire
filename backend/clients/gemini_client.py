@@ -3,6 +3,7 @@ import logging
 import re
 
 from google import genai
+from google.genai import errors
 from google.genai import types
 from pydantic import BaseModel, ValidationError
 
@@ -12,6 +13,7 @@ log = logging.getLogger("firebreak.gemini")
 
 _client: genai.Client | None = None
 _auto_model: str | None = None
+_exhausted: set[str] = set()  # models out of daily quota
 
 
 class GeminiNotConfigured(RuntimeError):
@@ -64,6 +66,22 @@ def judge_model() -> str:
     return config.GEMINI_JUDGE_MODEL or model()
 
 
+async def _generate(model_name: str, contents, cfg):
+    """generate_content, moving down GEMINI_FALLBACK_MODEL when a model is overloaded or out of quota.
+    A model that hits its daily quota is skipped for the rest of the run."""
+    chain = [m for m in [model_name] + config.GEMINI_FALLBACK_MODELS if m not in _exhausted]
+    chain = list(dict.fromkeys(chain)) or [model_name]
+    for i, m in enumerate(chain):
+        try:
+            return await client().aio.models.generate_content(model=m, contents=contents, config=cfg)
+        except errors.APIError as e:
+            if e.code not in (429, 500, 503) or i == len(chain) - 1:
+                raise
+            if "PerDay" in str(e):
+                _exhausted.add(m)
+            log.warning("%s returned %s, trying %s", m, e.code, chain[i + 1])
+
+
 def _parts(prompt: str, media: bytes | None, mime: str | None):
     parts = []
     if media:
@@ -83,8 +101,7 @@ async def gemini_json(prompt: str, schema: type[BaseModel], media: bytes | None 
     )
     last = None
     for _ in range(2):
-        resp = await client().aio.models.generate_content(
-            model=model_name or model(), contents=_parts(prompt, media, mime), config=cfg)
+        resp = await _generate(model_name or model(), _parts(prompt, media, mime), cfg)
         try:
             if isinstance(resp.parsed, schema):
                 return resp.parsed
@@ -97,9 +114,8 @@ async def gemini_json(prompt: str, schema: type[BaseModel], media: bytes | None 
 
 async def gemini_text(prompt: str, media: bytes | None = None, mime: str | None = None,
                       system: str | None = None, temperature: float = 0.4) -> str:
-    resp = await client().aio.models.generate_content(
-        model=model(), contents=_parts(prompt, media, mime),
-        config=types.GenerateContentConfig(temperature=temperature, system_instruction=system))
+    resp = await _generate(model(), _parts(prompt, media, mime),
+                           types.GenerateContentConfig(temperature=temperature, system_instruction=system))
     return (resp.text or "").strip()
 
 

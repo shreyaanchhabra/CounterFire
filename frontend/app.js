@@ -230,7 +230,8 @@ function renderRaw(n){$('raw').innerHTML=rawHTML(RUN.ed,n)}
 function renderOuts(){
   const p=curPosts(),en=p.en||"",es=p.es||"";
   $('enOut').textContent=en||"Drafts appear after the Drafter runs.";$('enLen').textContent=en?en.length+"/280":"";
-  $('esOut').textContent=es||"Spanish draft appears after the Drafter runs.";$('esLen').textContent=es?es.length+"/280":"";$('esCard').hidden=!S.es}
+  $('esOut').textContent=es||"Spanish draft appears after the Drafter runs.";$('esLen').textContent=es?es.length+"/280":"";$('esCard').hidden=!S.es;
+  const ce=RUN.drafted?"plaintext-only":"false";$('enOut').contentEditable=ce;$('esOut').contentEditable=ce}
 const wave=$('wave');for(let i=0;i<34;i++)wave.appendChild(document.createElement('i'));
 const bars=[...wave.children];
 const waveLevel=m=>bars.forEach(b=>b.style.height=(15+Math.min(1,m*3)*Math.random()*85)+"%");
@@ -280,13 +281,29 @@ function encodeWav(chunks,inRate,outRate){
   v.setUint32(24,outRate,true);v.setUint32(28,outRate*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);ws(36,"data");v.setUint32(40,n*2,true);
   for(let i=0;i<n;i++){const a=Math.floor(i*ratio),b=Math.max(a+1,Math.min(len,Math.floor((i+1)*ratio)));let s=0;for(let j=a;j<b;j++)s+=data[j];s=clamp(s/(b-a),-1,1);v.setInt16(44+i*2,s<0?s*0x8000:s*0x7fff,true)}
   return new Blob([buf],{type:"audio/wav"})}
-async function sendVoice(blob){
-  if(!RUN.drafted){toast("Start the scenario first so there's a draft to edit.",5000);return}
-  $('raw').innerHTML='<span class="empty">Listening back to your note…</span>';$('outs').classList.add('dim');
-  const fd=new FormData();fd.append('audio',blob,'voice.wav');fd.append('framing_key',S.fr);fd.append('es',S.es);
-  try{const ed=await api('/api/voice',fd);$('outs').classList.remove('dim');applyEditor(ed)}
-  catch(err){$('outs').classList.remove('dim');renderRaw();toast(err.message+" Try again or use Replay demo dictation.",7000)}
+async function submitVoice(fd,source){
+  if(!RUN.drafted){toast("Start the scenario first so there's a draft to edit.",5000);return false}
+  $('raw').innerHTML='<span class="empty">Reading your note…</span>';$('outs').classList.add('dim');
+  fd.append('framing_key',S.fr);fd.append('es',S.es);fd.append('source',source);
+  setPill("editor","wait","Reading your note…");
+  try{const ed=await api('/api/voice',fd);$('outs').classList.remove('dim');applyEditor(ed);
+    setPill("editor","",`${1+(ed.post_es?1:0)} posts from voice · ${source==="voiskey"?"Voiskey":"mic"}`);return true}
+  catch(err){$('outs').classList.remove('dim');renderRaw();setPill("editor","","Couldn't read that note");toast(err.message+" Try again or use Replay demo dictation.",7000);return false}
 }
+function sendVoice(blob){const fd=new FormData();fd.append('audio',blob,'voice.wav');submitVoice(fd,"mic")}
+
+// Voiskey has no API: it types into whatever text field has focus. When it stops typing, send the note.
+const dict=$('dict');let dictTimer;
+async function sendDictation(){clearTimeout(dictTimer);const text=dict.value.trim();if(!text||dictating)return;
+  dict.disabled=true;const fd=new FormData();fd.append('text',text);
+  if(await submitVoice(fd,"voiskey"))dict.value="";dict.disabled=false}
+dict.addEventListener('input',()=>{clearTimeout(dictTimer);dictTimer=setTimeout(sendDictation,1500)});
+dict.addEventListener('keydown',e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendDictation()}});
+
+// The posts are editable, so the officer can also dictate straight into them (Voiskey translation into the ES box).
+['enOut','esOut'].forEach(id=>$(id).addEventListener('input',()=>{
+  S.edit={fr:S.fr,en:$('enOut').textContent,es:$('esOut').textContent};
+  $('enLen').textContent=S.edit.en.length+"/280";$('esLen').textContent=S.edit.es.length+"/280";postsEl.dataset.sig=""}));
 const mic=$('mic');
 mic.addEventListener('pointerdown',e=>{e.preventDefault();mic.setPointerCapture(e.pointerId);recStart()});
 ['pointerup','pointercancel'].forEach(t=>mic.addEventListener(t,recStop));

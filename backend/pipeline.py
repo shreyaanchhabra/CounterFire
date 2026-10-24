@@ -5,6 +5,7 @@ The backend sends events as soon as results are ready. The frontend holds each o
 until the map clock reaches its minute, and pauses the clock if a result is late.
 """
 import asyncio
+import hashlib
 import json
 import logging
 import uuid
@@ -55,15 +56,16 @@ def judge_targets(ctx: dict) -> list[str]:
 async def analyze(image: bytes, mime: str, claim: str, ctx: dict, live: bool):
     """Prosecutor + Defender in parallel, then Judge. Shared by the pipeline and /api/analyze."""
     h = image_hash(image)
+    k = f"{h}_{hashlib.sha1(claim.encode()).hexdigest()[:6]}"  # same image with a different claim is a new case
     fx = (lambda n: n) if not live else (lambda n: None)  # never show scripted findings for a new image
     t = config.TIMEOUTS
     (pro, s1), (dfn, s2) = await asyncio.gather(
-        get_or_run(f"prosecutor_{h}", lambda: prosecutor.run(image, mime, claim, ctx), ProsecutorOut,
+        get_or_run(f"prosecutor_{k}", lambda: prosecutor.run(image, mime, claim, ctx), ProsecutorOut,
                    t["prosecutor"], live=live, fixture_name=fx("prosecutor")),
-        get_or_run(f"defender_{h}", lambda: defender.run(claim, context_line(ctx), image, mime), DefenderOut,
+        get_or_run(f"defender_{k}", lambda: defender.run(claim, context_line(ctx), image, mime), DefenderOut,
                    t["defender"], live=live, fixture_name=fx("defender")),
     )
-    jdg, s3 = await get_or_run(f"judge_{h}", lambda: judge.run(claim, pro, dfn, judge_targets(ctx)), JudgeOut,
+    jdg, s3 = await get_or_run(f"judge_{k}", lambda: judge.run(claim, pro, dfn, judge_targets(ctx)), JudgeOut,
                                t["judge"], live=live, fixture_name=fx("judge"))
     return (pro, s1), (dfn, s2), (jdg, s3), h
 

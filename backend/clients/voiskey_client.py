@@ -1,9 +1,11 @@
-"""Voiskey adapter. Owned by the Voiskey side.
+"""Voiskey adapter.
 
-Fill in transcribe_and_clean once we know what Voiskey offers. Until then it raises
-NotImplementedError and the Editor falls back to Gemini for transcription and cleanup.
-If Voiskey turns out to be a desktop dictation app (no API), POST /api/voice also
-accepts a `text` field, so dictated text can be sent instead of audio.
+Voiskey (voiskey.ai) is a system-wide speak-to-type desktop app with no public API or SDK
+(checked Oct 24 2026). It's integrated through the UI instead:
+  - Dictation (hold Right Alt): Voiskey types a cleaned note into the Editor's dictation box,
+    which POSTs it to /api/voice with source="voiskey".
+  - Translation (Right Alt + Right Shift): dictate straight into the editable Spanish post.
+If Voiskey ships an API later, implement transcribe_and_clean and the mic path will use it.
 """
 from .. import config
 
@@ -14,4 +16,4 @@ class VoiskeyClient:
 
     async def transcribe_and_clean(self, audio: bytes, mime: str) -> tuple[str, str]:
         """Return (raw_transcript, clean_text)."""
-        raise NotImplementedError("Voiskey adapter not built yet")
+        raise NotImplementedError("Voiskey has no API; the mic path falls back to Gemini")

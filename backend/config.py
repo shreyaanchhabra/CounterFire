@@ -16,6 +16,8 @@ CACHE.mkdir(exist_ok=True)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "").strip()
 GEMINI_JUDGE_MODEL = os.getenv("GEMINI_JUDGE_MODEL", "").strip()
+# Comma-separated, tried in order when a model is overloaded (503) or out of quota (429).
+GEMINI_FALLBACK_MODELS = [m.strip() for m in os.getenv("GEMINI_FALLBACK_MODEL", "").split(",") if m.strip()]
 XAI_API_KEY = os.getenv("XAI_API_KEY", "").strip()
 GROK_MODEL = os.getenv("GROK_MODEL", "").strip()
 GROK_FAST_MODEL = os.getenv("GROK_FAST_MODEL", "").strip() or GROK_MODEL

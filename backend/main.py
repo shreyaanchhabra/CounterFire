@@ -103,6 +103,7 @@ async def analyze(image: UploadFile = File(...), claim: str = Form(...)):
     sc = config.scenario()
     # The scenario's time and place only apply if it's still the scenario's claim.
     ctx = sc["context"] if claim.strip() == sc["claim"] else {"date": sc["context"]["date"]}
+    ctx = {k: v for k, v in ctx.items() if k != "image_note"}  # an uploaded image is a real image
     try:
         (pro, _), (dfn, _), (jdg, _), h = await asyncio.wait_for(
             pipeline.analyze(data, mime, claim.strip(), ctx, live=True), config.TIMEOUTS["analyze"])
@@ -120,15 +121,16 @@ def _framing(key: str) -> Framing:
 
 @app.post("/api/voice", response_model=EditorOut)
 async def voice(audio: UploadFile | None = File(None), text: str | None = Form(None),
-                framing_key: str = Form("B"), es: bool = Form(True)):
-    """Audio from the mic, or `text` if it was dictated elsewhere (for example the Voiskey desktop app)."""
+                framing_key: str = Form("B"), es: bool = Form(True), source: str = Form("")):
+    """Audio from the mic, or `text` typed by the Voiskey desktop app (source="voiskey")."""
     if audio is None and not (text and text.strip()):
         raise HTTPException(400, "Send audio or text")
     data, mime = (await _read_upload(audio, "audio")) if audio is not None else (None, None)
     claim = config.scenario()["claim"]
     try:
         return await asyncio.wait_for(
-            editor.run(_framing(framing_key), claim, audio=data, mime=mime, text=text, want_es=es),
+            editor.run(_framing(framing_key), claim, audio=data, mime=mime, text=text, want_es=es,
+                       voiskey_clean=source == "voiskey"),
             config.TIMEOUTS["editor"])
     except Exception as e:  # noqa: BLE001
         log.warning("voice failed: %s", e)

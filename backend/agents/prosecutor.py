@@ -20,7 +20,7 @@ SYSTEM = "You are a forensic image analyst for a county emergency communications
 VISION_PROMPT = """A social media post claims: "{claim}"
 Posted at: {post_time}. Claimed location: {location}.
 Sunset that day: {sunset}.
-
+{image_note}
 Find evidence that this image is NOT what the post claims. Check:
 - readable signs and text, and what places they name
 - landmarks, road and terrain features
@@ -54,12 +54,19 @@ Do not invent evidence. findings: up to 3, box_2d null, category "other" unless 
 bullets: up to 3 short points under 50 characters. image_description: empty string."""
 
 
+_search_blocked = False  # set after a quota error so we stop spending time on it
+
+
 async def _provenance(image: bytes, mime: str, claim: str, date: str) -> ProvenanceOut | None:
+    global _search_blocked
+    if _search_blocked:
+        return None
     try:
         report = await gemini_grounded_text(SEARCH_PROMPT.format(date=date, claim=claim), image, mime)
         return await gemini_json(STRUCTURE_PROMPT.format(date=date, report=report), ProvenanceOut)
     except Exception as e:  # noqa: BLE001 - provenance is optional (scope cut #4)
-        log.warning("provenance search failed: %s", e)
+        _search_blocked = "429" in str(e)
+        log.warning("provenance search failed: %s", str(e)[:120])
         return None
 
 
@@ -88,7 +95,8 @@ def _finalize(vision: VisionOut, prov: ProvenanceOut | None, account_age: str | 
 async def run(image: bytes, mime: str, claim: str, ctx: dict) -> ProsecutorOut:
     vision_task = gemini_json(
         VISION_PROMPT.format(claim=claim, post_time=ctx.get("post_time", "unknown"),
-                             location=ctx.get("location", "unknown"), sunset=ctx.get("sunset", "unknown")),
+                             location=ctx.get("location", "unknown"), sunset=ctx.get("sunset", "unknown"),
+                             image_note=ctx.get("image_note", "")),
         VisionOut, image, mime, system=SYSTEM)
     prov_task = _provenance(image, mime, claim, ctx.get("date", "today"))
     vision, prov = await asyncio.gather(vision_task, prov_task)

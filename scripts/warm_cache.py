@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.stdout.reconfigure(encoding="utf-8")  # Windows console defaults to cp1252
 
 from backend import config, pipeline  # noqa: E402
 

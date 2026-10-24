@@ -196,4 +196,10 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--flame)}
 .linkbtn{background:none;border:none;padding:0;color:var(--muted);font-size:12px;text-decoration:underline;text-underline-offset:2px}
 .linkbtn:hover{color:var(--fg)}
 .outs.dim .out{opacity:.35}
+.dict{width:100%;min-height:44px;resize:vertical;font:12px/1.45 var(--mono);color:var(--fg);background:var(--bg);border:1px solid #4a3466;border-radius:6px;padding:9px 10px}
+.dict::placeholder{color:var(--faint)}
+.dict:focus-visible{outline:2px solid #d6a8ff;outline-offset:1px}
+.dict:disabled{opacity:.5}
+.out p[contenteditable=plaintext-only]{cursor:text;border-radius:3px}
+.out p[contenteditable=plaintext-only]:focus{outline:1px dashed var(--water-dim);outline-offset:3px}
 

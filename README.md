@@ -12,7 +12,7 @@ Built for **Five Nights with AI** (ACM AI x TESC, UC San Diego). Full build plan
 | Judge | Gemini | **built** | Verdict, calibrated confidence, missing evidence (strict JSON) |
 | Drafter | Grok | stub (fixture) | 3 corrections, English + Spanish |
 | Society Sim | Grok | stub (fixture) | 6 persona groups score each correction; scores drive the map |
-| Editor | Voiskey + Gemini | Gemini fallback built | Voice note → clean posts + commands |
+| Editor | Voiskey + Gemini | **built** | Voiskey types the note; Gemini parses commands and rewrites the post. Mic backup uses Gemini audio |
 | Broadcaster | Grok | stub (fixture) | Posts to the in-app feed, answers replies |
 
 ## Run it
@@ -53,9 +53,20 @@ Fill in the function bodies and keep the signatures. Everything else (pipeline, 
 - `backend/agents/drafter.py`: `run(incident, judge) -> DrafterOut`
 - `backend/agents/society.py`: `run(framings, claim) -> SocietyAll` (6 scores per framing, GROUPS order)
 - `backend/agents/broadcaster.py`: `run(framing_key, post_en, post_es, replies) -> BroadcastOut`
-- `backend/clients/voiskey_client.py`: `transcribe_and_clean(audio, mime) -> (raw, clean)`. The mic sends 16 kHz mono WAV. If Voiskey is a desktop dictation app with no API, `POST /api/voice` also takes a `text` field.
 
 The shapes are in `backend/schemas.py`. The fixtures in `data/fixtures/` are working examples of each output.
+
+## Voiskey
+
+Voiskey is a speak-to-type desktop app with no public API, so it plugs in through the UI:
+
+1. **Dictation (hold Right Alt):** click the Editor's dictation box and speak. Voiskey types a cleaned note (no "um", fixed grammar). 1.5 seconds after it stops typing, the note goes to `/api/voice`. Gemini finds the commands ("kill it", "do Spanish too"), rewrites the post, and applies them: approve, add Spanish, pick a framing.
+2. **Translation (Right Alt + Right Shift):** click into the Spanish post and speak in English. Voiskey writes Spanish. Both posts are editable, and edits are what gets broadcast.
+3. **Backup:** hold the purple mic. The browser records WAV and Gemini transcribes it.
+
+## Gemini quota (read before the demo)
+
+The free tier allows **5 requests per minute and 20 per day per model**, and no Google Search grounding or image generation. On Oct 24 the newest Flash models were also overloaded (40s+ calls). Set `GEMINI_MODEL` to a fast model and list backups in `GEMINI_FALLBACK_MODEL`; the client moves down the list on 429/503. The pipeline runs from `cache/`, so it uses no quota; only Analyze (~3 calls) and voice notes (1-2 calls) are live. Enabling billing on the key's Google Cloud project removes these limits and turns on the search provenance check.
 
 ## Architecture
 

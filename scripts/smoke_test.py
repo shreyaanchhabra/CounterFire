@@ -11,6 +11,7 @@ import wave
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.stdout.reconfigure(encoding="utf-8")  # Windows console defaults to cp1252
 
 from backend import config  # noqa: E402
 from backend.clients import gemini_client as gc  # noqa: E402

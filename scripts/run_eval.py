@@ -16,6 +16,7 @@ import csv
 import io
 import json
 import random
+import re
 import subprocess
 import sys
 import zipfile
@@ -23,6 +24,7 @@ from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.stdout.reconfigure(encoding="utf-8")  # Windows console defaults to cp1252
 
 from backend import config  # noqa: E402
 from backend.agents import defender, judge, prosecutor  # noqa: E402
@@ -45,10 +47,22 @@ def load_rows() -> list[tuple[str, str]]:
         return [(r[2], r[1]) for r in csv.reader(f, delimiter="	", quoting=csv.QUOTE_NONE) if len(r) > 2]
 
 
+async def patient(fn, tries=6):
+    """Free tier allows ~5 requests/min per model. On 429, wait the delay Google asks for and retry."""
+    for i in range(tries):
+        try:
+            return await fn()
+        except Exception as e:  # noqa: BLE001
+            if "429" not in str(e) or i == tries - 1:
+                raise
+            m = re.search(r"retryDelay': '(\d+)", str(e))
+            await asyncio.sleep(int(m.group(1)) + 2 if m else 30)
+
+
 async def judge_claim(claim: str) -> str:
-    pro = await prosecutor.run_text(claim)
-    dfn = await defender.run(claim, "")
-    j = await judge.run(claim, pro, dfn, [])
+    pro = await patient(lambda: prosecutor.run_text(claim))
+    dfn = await patient(lambda: defender.run(claim, ""))
+    j = await patient(lambda: judge.run(claim, pro, dfn, []))
     return j.verdict
 
 
@@ -58,7 +72,7 @@ async def main(n: int):
     rng.shuffle(rows)
     pick = [r for r in rows if r[1] == "False"][: n // 2] + [r for r in rows if r[1] == "True"][: n - n // 2]
 
-    sem = asyncio.Semaphore(3)
+    sem = asyncio.Semaphore(1)  # free tier rate limits
 
     async def one(i, claim, gold):
         async with sem:
@@ -71,13 +85,16 @@ async def main(n: int):
         return {"claim": claim, "gold": gold, "verdict": v, "correct": pred == gold}
 
     items = await asyncio.gather(*(one(i, c, g) for i, (c, g) in enumerate(pick)))
-    correct = sum(x["correct"] for x in items)
-    confusion = Counter(f"{x['gold']}→{x['verdict'] if not x['verdict'].startswith('error') else 'error'}" for x in items)
-    out = {"correct": correct, "total": len(items), "accuracy": round(correct / max(1, len(items)), 3),
-           "confusion": dict(confusion), "unverified": sum(x["verdict"] == "Unverified" for x in items), "items": items}
-    (config.CACHE / "eval.json").write_text(json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"\nJudge: {correct}/{len(items)} correct. Confusion: {dict(confusion)}")
-
+    done = [x for x in items if not x["verdict"].startswith("error")]
+    errors = len(items) - len(done)
+    correct = sum(x["correct"] for x in done)
+    confusion = Counter(f"{x['gold']}→{x['verdict']}" for x in done)
+    out = {"correct": correct, "total": len(done), "errors": errors, "accuracy": round(correct / max(1, len(done)), 3),
+           "confusion": dict(confusion), "unverified": sum(x["verdict"] == "Unverified" for x in done), "items": items}
+    # Only a clean run feeds the UI's "eval X/30". A run with API errors is saved aside.
+    name = "eval.json" if not errors else "eval_partial.json"
+    (config.CACHE / name).write_text(json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"\nJudge: {correct}/{len(done)} correct, {errors} errors. Confusion: {dict(confusion)}. Saved cache/{name}")
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()

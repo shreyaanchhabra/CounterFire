@@ -1,7 +1,9 @@
 """Editor: the comms officer's voice note becomes clean posts and app commands.
 
-Voiskey does as much as it supports (transcript, cleanup). Gemini covers the rest:
-transcription if Voiskey isn't available, intent parsing, and rewriting the chosen framing.
+Voiskey is a desktop speak-to-type app with no API. The officer holds Right Alt and Voiskey
+types a cleaned note (fillers and grammar slips removed) into the Editor's dictation box,
+which sends it here as text. Gemini then parses the commands and rewrites the chosen framing.
+The hold-to-talk mic is the backup: Gemini transcribes the audio itself.
 """
 import re
 
@@ -57,10 +59,13 @@ def _overlaps(a, spans):
 
 
 async def run(framing: Framing, claim: str, audio: bytes | None = None, mime: str | None = None,
-              text: str | None = None, want_es: bool = True) -> EditorOut:
+              text: str | None = None, want_es: bool = True, voiskey_clean: bool = False) -> EditorOut:
+    """voiskey_clean: `text` was typed by Voiskey, which already removed fillers and fixed grammar."""
     clean = None
     if text:
         raw = text.strip()
+        if voiskey_clean:
+            clean = raw
     else:
         try:
             raw, clean = await VoiskeyClient().transcribe_and_clean(audio, mime)
