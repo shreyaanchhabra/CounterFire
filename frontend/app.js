@@ -1,77 +1,192 @@
-(() => {
+/* Firebreak desk core: server state, the guided next-step button, agent rail, feed, corrections, details drawer.
+   map.js, evidence.js and editor.js register their own renderers on window.FB. All episode state lives on the
+   server (backend/society_service.py); this file only renders it and calls its endpoints. */
+(()=>{
 'use strict';
-const $ = id => document.getElementById(id);
-const S = {view:null, groups:[], busy:false, index:0, playing:false, selected:'B', dirty:false, approvedPending:null, source:null, autoTimer:null};
-const pretty = x => typeof x === 'string' ? x : JSON.stringify(x,null,2);
-const pct = n => Number.isFinite(Number(n)) ? `${Math.round(Number(n)*100)}%` : '—';
-const el = (tag, cls, text) => {const n=document.createElement(tag);if(cls)n.className=cls;if(text!==undefined)n.textContent=text;return n;};
-function error(e){$('errorStatus').hidden=!e;$('errorStatus').textContent=e ? String(e.message || e) : '';}
-function toast(t){$('toast').textContent=t;$('toast').hidden=false;setTimeout(()=>$('toast').hidden=true,3500);}
-async function api(path, body){const response=await fetch(`/api${path}`,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body)});const data=await response.json();if(!response.ok){const problem=new Error(pretty(data.detail||data.error||data));problem.status=response.status;throw problem;}return data;}
-const path = suffix => `/episodes/${encodeURIComponent(S.view.id)}${suffix}`;
-async function act(fn){if(S.busy)return;S.busy=true;error(null);controls();try {await fn();}catch(e){error(e);$('auto').checked=false;}finally{S.busy=false;controls();scheduleAuto();}}
-function setView(v){if(!v || !v.id)return;try{localStorage.setItem('firebreak.episodeId',v.id);}catch{}try{const url=new URL(location.href);url.searchParams.set('episode',v.id);history.replaceState(null,'',url.pathname+url.search+url.hash);}catch{}const prior=S.view;const follows=!prior || S.index>=(prior.frames||[]).length-1;S.view=v;if(follows)S.index=Math.max(0,(v.frames||[]).length-1);if(prior?.branch_id!==v.branch_id){S.index=Math.max(0,(v.frames||[]).length-1);S.playing=false;}render();scheduleAuto();}
-function controls(){const v=S.view;const replay=v?.mode==='replay';for(const n of document.querySelectorAll('#enOut,#esOut,#targets input,#importVoice,#voiceInput'))n.disabled=S.busy||replay;const active=!!v&&!S.busy;const writable=active&&!replay;const ready=active&&v.status==='ready';$('start').disabled=S.busy;$('advance').disabled=!ready;$('record').disabled=!active||v.status!=='complete';$('draft').disabled=!writable||v.status==='running';$('importEvidence').disabled=!writable||v.status==='running';$('propose').disabled=!active||v.status==='running'||!!v.approval||!$('enOut').value.trim()||(replay&&!v.recorded_intervention);$('approve').disabled=!active||S.dirty||!v.pending_intervention||!!v.approval||v.status==='running'||v.round!==2;$('branchNone').disabled=!writable||v.status==='running'||v.round<2;$('branchCorrection').disabled=!writable||v.status==='running'||v.round<2||!$('enOut').value.trim();$('branches').disabled=!active||v.status==='running';$('generateReplies').disabled=!active||!v.approval||v.status==='running'||v.broadcast?.status==='running'||replay;$('mode').disabled=S.busy;$('recordings').hidden=$('mode').value!=='replay';}
-function scheduleAuto(){clearTimeout(S.autoTimer);if($('auto').checked && !S.busy && S.view?.status==='ready')S.autoTimer=setTimeout(()=>advance(),500);}
-function connect(){if(S.source)S.source.close();const id=S.view.id;S.source=new EventSource(`/api/episodes/${encodeURIComponent(id)}/events`);const receive=e=>{try{const v=JSON.parse(e.data);if(v.id===id)setView(v);else refresh();}catch{refresh();}};S.source.onmessage=receive;S.source.addEventListener('snapshot',receive);S.source.addEventListener('update',receive);S.source.addEventListener('episode',receive);S.source.onerror=()=>{if(S.view?.status==='running')$('episodeStatus').textContent='Connection interrupted; reconnecting to pending server jobs…';};}
-let refreshing=false;
-async function refresh(){if(refreshing||!S.view)return;refreshing=true;try{setView(await api(path('')));}catch(e){error(e);}finally{refreshing=false;}}
-function advance(){return act(async()=>setView(await api(path('/advance'),{})));}
-function intervention(){return {text_en:$('enOut').value,text_es:$('esOut').value,target_groups:[...$('targets').querySelectorAll('input:checked')].map(n=>Number(n.value)),framing_key:S.selected};}
-function edited(){S.dirty=true;S.approvedPending=null;$('approvalStatus').textContent='Edited · previous proposal cannot be approved. Propose this exact copy again.';lengths();controls();}
-function lengths(){$('enLen').textContent=`${$('enOut').value.length}/280`;$('esLen').textContent=`${$('esOut').value.length}/280`;}
-function loadEditor(f){$('enOut').value=f.text_en||f.text||'';$('esOut').value=f.text_es||'';S.selected=f.key||f.framing_key||S.selected;if(Array.isArray(f.target_groups)){for(const n of $('targets').querySelectorAll('input'))n.checked=f.target_groups.map(Number).includes(Number(n.value));}edited();renderDrafts();}
-function renderTargets(){const checked=new Set([...$('targets').querySelectorAll('input:checked')].map(n=>n.value));const first=!$('targets').children.length;$('targets').replaceChildren();for(const g of S.groups){const label=el('label');const input=el('input');input.type='checkbox';input.value=g.id;input.checked=first||checked.has(String(g.id));input.addEventListener('change',edited);label.append(input,document.createTextNode(g.name));$('targets').append(label);}}
-function render(){const v=S.view;if(v.groups?.length){S.groups=v.groups;renderTargets();}if(v.mode==='replay'&&v.recorded_intervention){const copy=v.recorded_intervention;$('enOut').value=copy.text_en||'';$('esOut').value=copy.text_es||'';S.selected=copy.framing_key||'B';for(const n of $('targets').querySelectorAll('input'))n.checked=(copy.target_groups||[]).map(Number).includes(Number(n.value));lengths();}$('modeStatus').textContent=v.mode==='fixture'?'FIXTURE · scripted decisions':v.mode==='live'?'LIVE · native Grok Bots':`REPLAY · recorded ${v.source_mode==='fixture'?'fixture':v.source_mode==='live'?'native':'trajectory'}`;$('feedOrigin').textContent=v.mode==='fixture'?'Scripted episode':v.mode==='replay'?'Recorded events':'Native Bot decisions';$('episodeStatus').textContent=`${v.id} · ${v.branch_id} · round ${v.round} · ${v.status} · ${v.pending_jobs?.length||0} pending jobs`;$('episodeStatus').dataset.status=v.status;if(v.error)error(v.error);$('pipeline').replaceChildren();for(const p of v.pipeline||[]){const box=el('div','agent');const row=el('div','row');row.append(el('span',`dot ${p.status==='running'?'live':/wait|pending/.test(p.status)?'wait':''}`),el('span','',p.agent),el('span',`model ${p.model||''}`,p.model||p.status));box.append(row,el('small','',`${p.summary||''}${p.model?' · '+p.status:''}`));$('pipeline').append(box);}renderDrafts();renderEvidence();renderGroups();renderBranches();renderBroadcast();const pending=v.pending_intervention;if(!S.dirty&&pending){const proposal=pending.intervention||pending;if(typeof proposal.text_en==='string'){$('enOut').value=proposal.text_en;$('esOut').value=proposal.text_es||'';S.selected=proposal.framing_key||S.selected;for(const n of $('targets').querySelectorAll('input'))n.checked=(proposal.target_groups||[]).map(Number).includes(Number(n.value));lengths();renderDrafts();}}$('approvalStatus').textContent=S.dirty?'Editor changed · propose again before approval':pending?`Revision ${pending.revision} · SHA256 ${pending.content_hash}`:v.approval?`Approved · ${pretty(v.approval)}`:'No pending proposal';$('apNote').textContent=v.mode==='replay'?'Replay uses the recorded correction exactly; propose and approve it again to pass the round barrier.':v.status==='awaiting_approval'?'Round barrier: explicitly approve a correction, or fork a no-correction branch.':'Exact-copy approval applies only inside this simulation.';$('scrub').max=Math.max(0,(v.frames||[]).length-1);controls();renderFrame();}
-function renderDrafts(){const wrap=$('framings');wrap.replaceChildren();const fs=S.view?.drafts?.framings||[];if(!fs.length){wrap.append(el('p','empty','No corrections drafted.'));return;}for(const f of fs){const b=el('button','fr');b.setAttribute('aria-pressed',String(S.selected===f.key));b.append(el('b','',`${f.key} · ${f.name||'Correction'}`),el('q','',f.text_en||f.text||''));if(f.text_es)b.append(el('q','',f.text_es));b.append(el('div','score',f.scores?`Computed scores: ${pretty(f.scores)}`:'Awaiting branch evaluation · no predicted score'));b.disabled=S.view?.mode==='replay';b.onclick=()=>loadEditor(f);wrap.append(b);}}
-// Evidence board is rendered by gemini.js (live Gemini verification, image boxes, debate, verdict).
-function renderEvidence(){if(window.FBGemini)window.FBGemini.render(S.view);}
-function renderGroups(){const wrap=$('groupDetails');const opens=new Set([...wrap.querySelectorAll('details[open]')].map(n=>n.dataset.group));wrap.replaceChildren();for(const g of S.groups){const d=el('details');d.dataset.group=String(g.id);d.open=opens.has(String(g.id));d.append(el('summary','',`${g.name} · ${pct(g.belief)} mean belief · ${pct(g.corrected)} corrected`));d.append(el('p','',`Seen: ${g.seen??0}. ${(g.reactions||[]).join(' · ')}`));const feedback=Array.isArray(S.view.feedback)?S.view.feedback.filter(f=>Number(f.group_id)===Number(g.id)):S.view.feedback?.[g.id];d.append(el('pre','',pretty(feedback||'No feedback yet')));wrap.append(d);}}
-function renderBranches(){const select=$('branches');select.replaceChildren();for(const b of S.view.branches||[]){const op=el('option','',`${b.branch_id} · round ${b.round} · ${b.status}`);op.value=b.branch_id;op.selected=b.branch_id===S.view.branch_id;select.append(op);}const wrap=$('comparisons');wrap.replaceChildren();const comparisons=S.view.comparisons;if(comparisons && (Array.isArray(comparisons)?comparisons.length:Object.keys(comparisons).length)){for(const [k,v] of Object.entries(comparisons)){const d=el('div');d.append(el('div','k',Array.isArray(comparisons)?v.branch_id||k:k),el('small','',pretty(v)));wrap.append(d);}}else wrap.append(el('p','hint','No computed comparisons yet.'));}
-function frame(){return S.view?.frames?.[Math.min(Math.floor(S.index),S.view.frames.length-1)];}
-function frameCounts(f){const states=f?.states||[];return {belief:states.filter(s=>s===1||s===2).length/Math.max(1,states.length),corrected:states.filter(s=>s===3||s===4).length/Math.max(1,states.length),n:states.length};}
-function renderFrame(){const f=frame();const count=frameCounts(f);$('sBel').textContent=f?pct(count.belief):'—';$('sCor').textContent=f?pct(count.corrected):'—';$('sRes').textContent=f?count.n:'—';$('clock').textContent=`T+${f?.minute??0} min · round ${f?.round??0}`;$('tLabel').textContent=`T+${f?.minute??0}`;$('vel').textContent=f?.events?.length||0;$('scrub').value=S.index;const posts=$('posts');posts.replaceChildren();for(const p of (S.view?.feed||[]).filter(p=>Number(p.round||0)<=Number(f?.round||0)).slice().reverse()){const a=el('article',`post ${/correction|retract/.test(p.kind)?'fix':'fire'}`);const who=el('div','who');who.append(el('b','',p.who||'Persona'),el('span','',`${p.language||'en'} · round ${p.round}`));a.append(who,el('p','',p.text),el('div','',`${p.kind||'message'}${p.parent_id?' · reply to '+p.parent_id:''}`));posts.append(a);}drawPlots();}
-const centers=[[.22,.27],[.2,.74],[.5,.5],[.79,.26],[.8,.74],[.5,.12]];
-// Deterministic positions are visual layout only. All network states and deliveries come from the server.
-function random(seed){return ()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-const style=getComputedStyle(document.documentElement);const colors=['--faint','--ember','--ember-dim','--water','--water-dim'].map(n=>style.getPropertyValue(n).trim());
-function context(id){const c=$(id),r=c.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);if(c.width!==Math.round(r.width*d)||c.height!==Math.round(r.height*d)){c.width=Math.round(r.width*d);c.height=Math.round(r.height*d);}const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,r.width,r.height);return[x,r.width,r.height];}
-function drawMap(now){const [x,w,h]=context('map'),f=frame(),net=S.view?.network;if(!f||!net)return;const rand=random(3),pad=w<500?18:34;const positions=(net.groups||[]).map(c=>{const center=centers[Number(c)]||centers[0];const gauss=()=>Math.sqrt(-2*Math.log(Math.max(.000001,rand())))*Math.cos(2*Math.PI*rand());return [pad+(center[0]+gauss()*.065)*(w-2*pad),pad+8+(center[1]+gauss()*(Number(c)===5?.035:.065))*(h-2*pad-8)];});x.strokeStyle='rgba(237,229,217,.06)';x.lineWidth=.6;x.beginPath();for(const [a,b] of net.edges||[]){if(!positions[a]||!positions[b])continue;x.moveTo(...positions[a]);x.lineTo(...positions[b]);}x.stroke();for(const ev of f.events||[]){if(!positions[ev.from]||!positions[ev.to])continue;const a=positions[ev.from],b=positions[ev.to],t=S.playing?S.index%1:1;x.strokeStyle=/correction/.test(String(ev.kind))?colors[3]:colors[1];x.globalAlpha=.6;x.lineWidth=1.4;x.beginPath();x.moveTo(...a);x.lineTo(a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t);x.stroke();}x.globalAlpha=1;x.font="500 11px 'IBM Plex Mono',monospace";x.textAlign='center';centers.forEach(([cx,cy],c)=>{const name=S.groups.find(g=>Number(g.id)===c)?.name;if(!name)return;const y=pad+8+cy*(h-2*pad-8)+(c===2?-60:c===5?-30:cy<.5?-58:58);x.fillStyle=style.getPropertyValue('--muted');x.fillText((w<500?name.slice(0,12):name).toUpperCase(),pad+cx*(w-2*pad),Math.max(12,Math.min(h-6,y)));});f.states.forEach((s,i)=>{if(!positions[i])return;const [px,py]=positions[i],active=s===1||s===3,r=active?3.4+Math.sin(now/150+i)*.5:2.7;if(active){x.globalAlpha=.16;x.fillStyle=colors[s];x.beginPath();x.arc(px,py,r*3.2,0,7);x.fill();x.globalAlpha=1;}x.fillStyle=colors[s]||colors[0];x.beginPath();x.arc(px,py,r,0,7);x.fill();});}
-function drawPlots(){const frames=S.view?.frames||[];const [x,w,h]=context('chart');if(!frames.length)return;const max=Math.max(1,frames.at(-1).minute||frames.length-1);x.font="10px 'IBM Plex Mono',monospace";x.fillStyle=colors[0];for(const v of [0,.5,1]){const y=6+(1-v)*(h-24);x.fillText(`${v*100}%`,0,y+4);x.strokeStyle='rgba(237,229,217,.07)';x.beginPath();x.moveTo(28,y);x.lineTo(w,y);x.stroke();}for(const [key,color]of [['belief',colors[1]],['corrected',colors[3]]]){x.beginPath();frames.forEach((f,i)=>{const px=28+(f.minute||i)/max*(w-34),py=6+(1-frameCounts(f)[key])*(h-24);i?x.lineTo(px,py):x.moveTo(px,py);});x.strokeStyle=color;x.lineWidth=1.8;x.stroke();}x.fillText(`T+0 → T+${frames.at(-1).minute??0} recorded min`,28,h-2);const [sx,sw,sh]=context('spark');const maxEv=Math.max(1,...frames.map(f=>f.events?.length||0));sx.beginPath();frames.forEach((f,i)=>{const px=i/Math.max(1,frames.length-1)*sw,py=sh-2-(f.events?.length||0)/maxEv*(sh-4);i?sx.lineTo(px,py):sx.moveTo(px,py);});sx.strokeStyle=colors[1];sx.stroke();}
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const motion=matchMedia('(prefers-reduced-motion: reduce)');
+const S={view:null,health:null,scenario:null,busy:false,busyLabel:'',selected:'B',dirty:false,source:null,local:{},recordings:[]};
+const AGENTS=[['scout','Scout','grok'],['prosecutor','Prosecutor','gemini'],['defender','Defender','gemini'],['judge','Judge','gemini'],
+  ['drafter','Drafter','grok'],['society','Town Bots','grok'],['editor','Editor','voiskey'],['broadcaster','Broadcaster','grok']];
+const SPONSOR={grok:'Grok',gemini:'Gemini',voiskey:'Voiskey'};
+// Links read better as a domain on screen. The exact text still goes to the server.
+const shortLinks=s=>String(s??'').replace(/https?:\/\/(?:www\.)?([a-z0-9.-]+)\/?/gi,(m,h)=>h.replace(/^readysandiego\.org$/i,'ReadySanDiego.org'));
 
-function renderBroadcast(){const v=S.view;const wrap=$('broadcastReplies');wrap.replaceChildren();const questions=(v.feed||[]).filter(p=>p.kind==='question'||p.kind==='reply');if(!questions.length)wrap.append(el('p','hint','No society questions or replies yet.'));for(const q of questions){const article=el('article','post');article.append(el('b','',`${q.who||'Persona'} · ${q.language||'en'} · ${q.id}`),el('p','',q.text));wrap.append(article);}for(const r of v.broadcast?.replies||[]){const article=el('article','post fix');article.append(el('b','','Broadcaster · reply to '+r.question_id),el('p','',r.text));wrap.append(article);}$('broadcastStatus').textContent=v.broadcast?.status||'Awaiting approved intervention and community questions';}
-$('generateReplies').onclick=()=>act(async()=>{const raw=$('questionsInput').value.trim();let body={};
-// No community questions yet (fixture personas rarely ask): answer the scenario's scripted questions instead.
-if(!raw&&!(S.view.feed||[]).some(p=>p.kind==='question'||p.kind==='reply')&&S.scenarioReplies?.length)body={questions:S.scenarioReplies};
-if(raw){const parsed=JSON.parse(raw);body=Array.isArray(parsed)?{questions:parsed}:parsed;if(!Array.isArray(body.questions))throw new Error('Supply a questions array with id, text, and language.');}setView(await api(path('/replies'),body));});
+const FB=window.FB={S,$,esc,shortLinks,renderers:[],reduced:()=>motion.matches,api,act,setView,toast,alert:showAlert,refresh,selectFraming};
 
-$('start').onclick=()=>act(async()=>{const mode=$('mode').value;if(mode==='replay'&&!$('recordings').value)throw new Error('Select a saved recording first.');if(S.source)S.source.close();S.dirty=false;S.index=0;S.playing=false;$('enOut').value='';$('esOut').value='';lengths();setView(await api('/episodes',{mode,...(mode==='replay'?{recording_id:$('recordings').value}:{})}));connect();});$('advance').onclick=advance;$('auto').onchange=scheduleAuto;$('mode').onchange=controls;
-$('draft').onclick=()=>act(async()=>setView(await api(path('/drafts'),{})));
-$('propose').onclick=()=>act(async()=>{const v=await api(path('/intervention'),intervention());S.dirty=false;setView(v);});
-$('approve').onclick=()=>act(async()=>{if(S.dirty||!S.view.pending_intervention)throw new Error('Propose the current copy before approval.');const {revision,content_hash}=S.view.pending_intervention;setView(await api(path('/approve'),{revision,content_hash}));});
-$('importEvidence').onclick=()=>act(async()=>setView(await api(path('/evidence'),JSON.parse($('evidenceInput').value))));
-$('importVoice').onclick=()=>{error(null);try{const v=JSON.parse($('voiceInput').value);if(typeof v.text_en!=='string'||(v.text_es!==undefined&&typeof v.text_es!=='string'))throw new Error('Normalized intervention requires text_en and optional text_es strings.');loadEditor(v);toast('Normalized intervention loaded. Review and propose the exact copy.');}catch(e){error(e);}};
-for(const id of ['enOut','esOut'])$(id).oninput=edited;
-for(const [id,kind]of [['branchNone','none'],['branchCorrection','correction']])$(id).onclick=()=>act(async()=>{S.dirty=false;setView(await api(path('/branch'),{kind,...(kind==='correction'?{intervention:intervention()}:{})}));});
-$('branches').onchange=()=>act(async()=>{S.dirty=false;setView(await api(path('/select-branch'),{branch_id:$('branches').value}));});
-async function recordings(){const result=await api('/recordings');const list=Array.isArray(result)?result:result.recordings||[];$('recordings').replaceChildren();for(const r of list){const op=el('option','',r.name||r.id||r.recording_id||r);op.value=r.id||r.recording_id||r;$('recordings').append(op);}}
-$('record').onclick=()=>act(async()=>{const result=await api(path('/record'),{});toast(`Recording saved · ${result.recording_id||result.id||'immutable snapshot'}`);await recordings();});
-$('scrub').oninput=()=>{S.index=Number($('scrub').value);S.playing=false;setPlay();renderFrame();};function setPlay(){$('play').textContent=S.playing?'❚❚':'▶';$('play').setAttribute('aria-label',S.playing?'Pause recorded frames':'Play recorded frames');}$('play').onclick=()=>{if(S.index>=(S.view?.frames?.length||0)-1)S.index=0;S.playing=!S.playing;setPlay();};
-const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;let last=performance.now(),lastFrame=-1;function loop(now){if(S.playing){S.index=Math.min(Math.max(0,(S.view?.frames?.length||0)-1),S.index+(now-last)/1100);if(S.index>=(S.view?.frames?.length||0)-1){S.playing=false;setPlay();}if(Math.floor(S.index)!==lastFrame){lastFrame=Math.floor(S.index);renderFrame();}}last=now;drawMap(reduced?0:now);requestAnimationFrame(loop);}requestAnimationFrame(loop);new ResizeObserver(()=>{drawPlots();}).observe($('chart'));
-// SSE is primary; a low-frequency read recovers views after transient disconnects.
-setInterval(()=>{if(S.view?.status==='running')refresh();},5000);
-// Bridge for gemini.js (Gemini evidence board, Voiskey editor). Same state and helpers, no copies.
-window.Firebreak={S,api,act,setView,loadEditor,path,toast,error,controls,propose:()=>act(async()=>{const v=await api(path('/intervention'),intervention());S.dirty=false;setView(v);})};
-(async()=>{
-  const results=await Promise.allSettled([api('/health'),api('/scenario'),recordings()]);
-  for(const r of results)if(r.status==='rejected')error(r.reason);
-  const health=results[0].status==='fulfilled'?results[0].value:null;
-  if(health){const configured=(health.bots?.groups||[]).filter(Boolean).length;const total=health.bots?.groups?.length||6;$('healthStatus').textContent=`Native Bots: ${configured}/${total} communities configured · comms ${health.bots?.comms?'configured':'not configured'} · callback ${health.callback_ready?'configured':'not configured'}. Fixture uses scripted decisions; replay uses saved trajectories.`;const option=$('mode').querySelector('option[value="live"]');option.textContent=`Live · native Grok Bots (${configured}/${total} groups)`;}else $('healthStatus').textContent='Unable to read local Bot configuration.';
-  const scenario=results[1].status==='fulfilled'?results[1].value:null;
-  if(scenario){const data=scenario.scenario||scenario;S.scenarioReplies=data.replies||[];$('incidentId').textContent=`INCIDENT ${data.incident_id||''} · fictional exercise`;$('claim').textContent=data.claim||'Scenario loaded';S.groups=scenario.groups||[];renderTargets();}
-  $('episodeStatus').textContent=health?'Local service ready · start a fictional episode':'Local service unavailable';
-  let savedId=new URL(location.href).searchParams.get('episode');if(!savedId){try{savedId=localStorage.getItem('firebreak.episodeId');}catch{}}
-  if(savedId&&health){try{const restored=await api(`/episodes/${encodeURIComponent(savedId)}`);S.dirty=false;$('mode').value=restored.mode;setView(restored);connect();}catch(e){if(e.status===404){$('episodeStatus').textContent='Previous episode is no longer available. Start a new fictional episode.';try{if(localStorage.getItem('firebreak.episodeId')===savedId)localStorage.removeItem('firebreak.episodeId');}catch{}const url=new URL(location.href);url.searchParams.delete('episode');history.replaceState(null,'',url.pathname+url.search+url.hash);}else{error(e);$('episodeStatus').textContent='Could not resume the previous episode. Start a new episode or reload to retry.';}}}
-  controls();
-})();
+/* ---------- server ---------- */
+async function api(path,body){
+  const opt=body instanceof FormData?{method:'POST',body}:body!==undefined?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{};
+  const r=await fetch('/api'+path,opt);let d=null;try{d=await r.json();}catch{}
+  if(!r.ok){const detail=d?.detail??d?.error;const e=new Error(typeof detail==='string'?detail:Array.isArray(detail)?detail.map(x=>x.msg||x).join('; '):`The server returned ${r.status}.`);e.status=r.status;throw e;}
+  return d;}
+const ep=suffix=>`/episodes/${encodeURIComponent(S.view.id)}${suffix}`;
+async function act(fn,label){
+  if(S.busy)return;S.busy=true;S.busyLabel=label||'Working…';showAlert(null);render();
+  try{await fn();}catch(e){showAlert(e.message||String(e));$('auto').checked=false;}
+  finally{S.busy=false;S.busyLabel='';render();scheduleAuto();}}
+function setView(v){
+  if(!v||!v.id)return;
+  try{localStorage.setItem('firebreak.episodeId',v.id);}catch{}
+  try{const u=new URL(location.href);u.searchParams.set('episode',v.id);history.replaceState(null,'',u.pathname+u.search);}catch{}
+  if(S.view?.id!==v.id)S.dirty=false;
+  S.view=v;render();scheduleAuto();}
+async function refresh(){if(!S.view)return;try{setView(await api(ep('')));}catch(e){if(e.status===404)forget();}}
+function connect(){
+  if(S.source)S.source.close();
+  S.source=new EventSource(`/api/episodes/${encodeURIComponent(S.view.id)}/events`);
+  S.source.addEventListener('snapshot',e=>{try{const v=JSON.parse(e.data);if(v.id===S.view?.id&&v.version!==S.view.version)setView(v);}catch{}});}
+function forget(){try{localStorage.removeItem('firebreak.episodeId');}catch{}S.view=null;render();}
+setInterval(()=>{if(S.view?.status==='running')refresh();},4000);
+
+/* ---------- toasts and alerts ---------- */
+function toast(text){
+  const t=document.createElement('div');t.className='toast';t.textContent=text;$('toasts').append(t);
+  setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),180);},3800);}
+function showAlert(text){$('alert').hidden=!text;$('alertText').textContent=text||'';}
+$('alertClose').onclick=()=>showAlert(null);
+
+/* ---------- the guided next step ---------- */
+// One button walks the whole demo. Each step names exactly what it does.
+function nextStep(){
+  const v=S.view;
+  if(S.busy)return{label:S.busyLabel,disabled:true};
+  if(!v)return{label:'Start episode',run:start,guide:'Start an episode. A rumor about the I-15 fire is about to spread.'};
+  const replay=v.mode==='replay';
+  if(v.status==='error')return{label:'Start new episode',run:start,guide:'This run stopped. Start a new episode to try again.'};
+  if(v.status==='running')return{label:v.mode==='live'?'Grok Bots are deciding…':'Working…',disabled:true,
+    guide:v.mode==='live'?'The six community Bots are deciding what to do. A round takes about a minute.':'Working…'};
+  if(!replay&&S.local.verifying)return{label:'Gemini is checking…',disabled:true,guide:'Gemini is checking the viral photo. The Prosecutor and Defender argue, then the Judge rules.'};
+  if(!replay&&!v.evidence)return{label:'Check the photo',run:()=>FB.verify(),guide:'Have Gemini check the photo before writing a correction.'};
+  if(!v.drafts)return{label:'Draft corrections',run:draft,guide:`Gemini ruled the post ${String(v.evidence?.verdict||'unverified').toLowerCase()}. Next, Grok drafts three corrections in English and Spanish.`};
+  if(v.round<2)return{label:`Run round ${v.round+1}`,run:advance,guide:v.round===0?'Watch the rumor move through the town. Each round is 10 minutes.':'The rumor is spreading. One more round before you decide.'};
+  if(v.round===2&&v.status==='awaiting_approval'){
+    if(!$('enOut').value.trim())return{label:'Use the selected correction',run:()=>selectFraming(S.selected,true),guide:'Decision point. Pick a correction, or hold Right Alt over the Editor and say what to change.'};
+    return{label:'Approve and send',run:()=>FB.approve(),attn:true,guide:'Review the exact text in the Editor, then approve it. It goes to the communities you picked.'};}
+  if(v.round<4)return{label:`Run round ${v.round+1}`,run:advance,guide:v.approval?'The correction is out. Watch who accepts it and who passes it on.':'Running without a correction.'};
+  if(v.approval&&!replay&&v.broadcast?.status!=='done')return{label:'Answer replies',run:replies,guide:'Residents are asking questions. Have the Broadcaster answer them.'};
+  return{label:'Start new episode',run:start,guide:'Done. Open Details to save this run or fork a what-if branch.'};}
+
+function renderCta(){
+  const n=nextStep(),b=$('cta');
+  b.textContent=n.label;b.disabled=!!n.disabled;b.onclick=n.run?()=>n.run():null;
+  b.classList.toggle('attn',!!n.attn&&!S.busy);
+  if(n.guide)$('guide').textContent=n.guide;}
+
+async function start(){
+  const mode=$('mode').value;
+  if(mode==='replay'&&!$('recordings').value){showAlert('Pick a saved run first.');return;}
+  await act(async()=>{
+    S.local={};S.selected='B';FB.resetEditor?.();
+    setView(await api('/episodes',{mode,...(mode==='replay'?{recording_id:$('recordings').value}:{})}));connect();
+  },'Starting…');}
+const draft=()=>act(async()=>setView(await api(ep('/drafts'),{})),'Drafting…');
+const advance=()=>act(async()=>setView(await api(ep('/advance'),{})),'Running the round…');
+function replies(){
+  return act(async()=>{
+    const raw=$('questionsInput').value.trim();let body={};
+    if(raw){const p=JSON.parse(raw);body=Array.isArray(p)?{questions:p}:p;}
+    // Fixture personas rarely ask questions; fall back to the scenario's scripted ones.
+    else if(!(S.view.feed||[]).some(p=>p.kind==='question'||p.kind==='reply')&&S.scenario?.replies?.length)body={questions:S.scenario.replies};
+    setView(await api(ep('/replies'),body));
+  },'Answering…');}
+function scheduleAuto(){
+  clearTimeout(S.autoTimer);const v=S.view;
+  if($('auto').checked&&!S.busy&&v?.status==='ready'&&v.round!==2)S.autoTimer=setTimeout(advance,700);}
+
+/* ---------- agent rail ---------- */
+function renderRail(){
+  const by=Object.fromEntries((S.view?.pipeline||[]).map(p=>[p.agent,p]));
+  const rail=$('rail');
+  if(!rail.children.length)rail.innerHTML=AGENTS.map(([k,n,s])=>`<li data-agent="${k}" data-sponsor="${s}"><span class="name"><i class="dot"></i>${n}</span><span class="who">${SPONSOR[s]}</span></li>`).join('');
+  for(const li of rail.children){
+    const k=li.dataset.agent,p=by[k];
+    let st=p?.status||'waiting';
+    if(S.local.verifying&&['prosecutor','defender','judge'].includes(k))st='running';
+    if(S.local.editing&&k==='editor')st='running';
+    if(k==='editor'&&st==='ready')st=S.local.edited?'done':'waiting';
+    li.dataset.state=['done','running','error'].includes(st)?st:'waiting';li.title=p?.summary||'';}}
+
+/* ---------- feed ---------- */
+const shown=new Set();
+function renderFeed(){
+  const v=S.view,list=$('posts'),scout=v?.scout;
+  $('claim').textContent=scout?.claim||S.scenario?.claim||'Waiting for the scenario…';
+  $('incidentMeta').textContent=scout?`Scout grouped ${scout.post_count} posts in ${(scout.languages||[]).map(l=>({en:'English',es:'Spanish'}[l]||l)).join(' and ')}.`:'Scout groups matching posts into one incident.';
+  const items=(v?.feed||[]).map(p=>({id:p.id,who:p.who||'Resident',text:p.text,meta:`${p.language==='es'?'ES  ':''}T+${(p.round||0)*10}`,
+    cls:/correction|retract/.test(p.kind)||p.who==='@CountyComms_demo'?'fix':p.kind==='question'?'ask':''}));
+  const ask=Object.fromEntries([...(v?.feed||[]),...(S.scenario?.replies||[])].map(p=>[p.id,p]));
+  for(const r of v?.broadcast?.replies||[])items.push({id:'reply-'+r.question_id,who:'@CountyComms_demo',cls:'fix',text:r.text,meta:'Reply',q:ask[r.question_id]?.text});
+  if(!items.length){shown.clear();list.innerHTML='<li class="empty">Posts appear as the rumor spreads.</li>';return;}
+  items.reverse();const first=!shown.size;
+  list.innerHTML=items.map(p=>`<li class="post ${p.cls}${!first&&!shown.has(p.id)?' enter':''}"><div class="who"><b>${esc(p.who)}</b><span>${esc(p.meta)}</span></div>${p.q?`<p class="q">${esc(p.q)}</p>`:''}<p>${esc(shortLinks(p.text))}</p></li>`).join('');
+  items.forEach(p=>shown.add(p.id));}
+
+/* ---------- corrections ---------- */
+let draftsSeen=false;
+function renderLab(){
+  const fs=S.view?.drafts?.framings||[],wrap=$('framings');
+  if(!fs.length){draftsSeen=false;wrap.innerHTML=`<p class="empty">${S.view?.evidence?'Grok drafts three corrections when you ask.':'Corrections are drafted after Gemini checks the photo.'}</p>`;return;}
+  const locked=!!S.view.approval||S.view.mode==='replay';
+  wrap.innerHTML=fs.map((f,i)=>`<button class="fr${draftsSeen?'':' enter'}" style="animation-delay:${draftsSeen?0:i*80}ms" data-key="${f.key}" aria-pressed="${S.selected===f.key}"${locked?' disabled':''}>
+    <span class="fh"><b>${esc(f.name)}</b>${S.selected===f.key&&$('enOut').value.trim()?'<span>In the editor</span>':''}</span>
+    <q>${esc(shortLinks(f.text_en))}</q>${f.text_es?`<span class="es">${esc(shortLinks(f.text_es))}</span>`:''}</button>`).join('');
+  draftsSeen=true;
+  wrap.querySelectorAll('.fr').forEach(b=>b.onclick=()=>selectFraming(b.dataset.key,true));}
+function selectFraming(key,load){
+  S.selected=key;const f=(S.view?.drafts?.framings||[]).find(x=>x.key===key);
+  if(f&&load)FB.loadEditor?.(f);render();}
+
+/* ---------- details drawer ---------- */
+function openDrawer(open){
+  const d=$('drawer');$('moreBtn').setAttribute('aria-expanded',String(open));
+  if(open){d.hidden=false;d.classList.add('opening');requestAnimationFrame(()=>requestAnimationFrame(()=>d.classList.remove('opening')));}
+  else{d.classList.add('closing');setTimeout(()=>{d.hidden=true;d.classList.remove('closing');},200);}}
+$('moreBtn').onclick=()=>openDrawer($('drawer').hidden);
+$('drawerClose').onclick=()=>openDrawer(false);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('drawer').hidden)openDrawer(false);});
+function renderDrawer(){
+  const v=S.view,h=S.health;
+  $('dStatus').textContent=v?`${{fixture:'Simulated town',live:'Live Grok Bots',replay:'Saved run'}[v.mode]}, round ${v.round} of 4, ${v.status.replace('_',' ')}${v.pending_jobs?.length?`, ${v.pending_jobs.length} Bot jobs pending`:''}. Episode ${v.id.slice(0,8)}.`:'No episode yet.';
+  if(h){const n=(h.bots?.groups||[]).filter(Boolean).length;$('dBots').textContent=`Grok Bots: ${n} of 6 communities set up, Comms ${h.bots?.comms?'set up':'missing'}, callback ${h.callback_ready?'set':'missing'}.`;}
+  const writable=!!v&&!S.busy&&v.mode!=='replay'&&v.status!=='running';
+  $('branchNone').disabled=!writable||v.round<2;$('branchCorrection').disabled=!writable||v.round<2||!$('enOut').value.trim();
+  $('branches').disabled=!v||S.busy||v.status==='running';
+  $('branches').innerHTML=(v?.branches||[]).map(b=>`<option value="${esc(b.branch_id)}"${b.branch_id===v.branch_id?' selected':''}>${esc(b.branch_id==='main'?'Main run':b.branch_id)}, round ${b.round}, ${esc(b.status.replace('_',' '))}</option>`).join('');
+  $('comparisons').innerHTML=(v?.comparisons||[]).map(c=>`<div><span>${esc(c.branch_id==='main'?'Main run':c.branch_id)}</span><span>${Math.round(c.mean_belief*100)}% still believe</span></div>`).join('');
+  $('record').disabled=!v||v.status!=='complete'||S.busy;
+  $('importEvidence').disabled=!writable||!!v?.approval;$('verifyGemini').disabled=!writable||!!v?.approval;
+  $('broadcastStatus').textContent=v?.broadcast?.status==='done'?`Answered ${v.broadcast.replies.length} questions.`:v?.approval?'Ready to answer residents.':'Available after the correction goes out.';
+  $('evidencePacket').textContent=v?.evidence?JSON.stringify(v.evidence,null,2):'None yet.';}
+for(const[id,kind]of[['branchNone','none'],['branchCorrection','correction']])$(id).onclick=()=>act(async()=>{
+  setView(await api(ep('/branch'),{kind,...(kind==='correction'?{intervention:FB.intervention()}:{})}));toast('Branch created at the decision point.');},'Forking…');
+$('branches').onchange=()=>act(async()=>setView(await api(ep('/select-branch'),{branch_id:$('branches').value})),'Switching…');
+$('record').onclick=()=>act(async()=>{await api(ep('/record'),{});toast('Run saved. Choose "Saved run" to replay it.');await loadRecordings();},'Saving…');
+$('importEvidence').onclick=()=>act(async()=>{setView(await api(ep('/evidence'),JSON.parse($('evidenceInput').value)));toast('Evidence imported.');},'Importing…');
+$('auto').onchange=scheduleAuto;
+$('mode').onchange=()=>{$('recordings').hidden=$('mode').value!=='replay';};
+async function loadRecordings(){
+  try{const r=await api('/recordings');S.recordings=Array.isArray(r)?r:r.recordings||[];}catch{S.recordings=[];}
+  $('recordings').innerHTML=S.recordings.length?S.recordings.map(r=>`<option value="${esc(r.id)}">${esc(r.name||r.id)}</option>`).join(''):'<option value="">No saved runs</option>';}
+
+/* ---------- render ---------- */
+function render(){
+  const v=S.view;
+  $('clock').textContent=v?`T+${v.sim_t??0} min, round ${v.round} of 4`:'T+0 min';
+  renderRail();renderCta();renderFeed();renderLab();renderDrawer();
+  for(const r of FB.renderers)r(v);}
+FB.render=render;
+
+/* ---------- boot ---------- */
+document.addEventListener('DOMContentLoaded',async()=>{
+  const [h,sc]=await Promise.allSettled([api('/health'),api('/scenario'),loadRecordings()]);
+  if(h.status==='fulfilled'){S.health=h.value;const n=(h.value.bots?.groups||[]).filter(Boolean).length,ok=n===6&&h.value.bots?.comms&&h.value.callback_ready;
+    $('mode').querySelector('option[value=live]').textContent=ok?'Live Grok Bots':`Live Grok Bots (${n} of 6 set up)`;}
+  else showAlert('The local server is not reachable. Start it, then reload.');
+  if(sc.status==='fulfilled')S.scenario=sc.value.scenario||sc.value;
+  let saved=new URL(location.href).searchParams.get('episode');if(!saved){try{saved=localStorage.getItem('firebreak.episodeId');}catch{}}
+  if(saved&&h.status==='fulfilled'){try{const v=await api(`/episodes/${encodeURIComponent(saved)}`);$('mode').value=v.mode;setView(v);connect();}catch{forget();}}
+  render();
+});
 })();

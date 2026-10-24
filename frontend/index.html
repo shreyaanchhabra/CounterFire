@@ -1,29 +1,129 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Firebreak Response Desk</title><link rel="stylesheet" href="/static/styles.css"><script src="/static/app.js" defer></script><script src="/static/gemini.js" defer></script></head>
-<body><div class="wrap">
-<header class="top"><div class="brand"><h1>Fire<span>break</span></h1><p>Misinformation response desk for county emergency comms</p></div><div class="meta"><span class="chip red">Fictional wildfire exercise</span><span class="chip" id="modeStatus">No episode</span><span class="clock" id="clock">T+0 min</span></div></header>
-<div class="controls"><label for="mode">Execution</label><select id="mode"><option value="fixture">Fixture · scripted decisions</option><option value="live">Live · native Grok Bots</option><option value="replay">Replay · saved trajectory</option></select><select id="recordings" aria-label="Saved recording" hidden></select><button class="btn primary" id="start">Start episode</button><button class="btn" id="advance" disabled>Next round</button><label><input type="checkbox" id="auto"> Auto advance</label><button class="btn" id="record" disabled>Save recording</button></div>
-<div class="status" id="healthStatus" role="status">Checking native Bot configuration…</div>
-<div class="status" id="episodeStatus" role="status" aria-live="polite">Loading local service…</div><div class="error" id="errorStatus" role="alert" hidden></div>
-<div class="pipe-scroll"><div class="pipe" id="pipeline" aria-label="Agent pipeline"></div></div>
-<main class="grid">
-<section class="p feed" aria-labelledby="feedH"><div class="ph"><h2 id="feedH">Scout feed</h2><span class="label" id="feedOrigin">Episode events</span></div><div class="incident"><div class="id" id="incidentId">SCENARIO</div><h3 id="claim">Awaiting scenario</h3><div class="vel"><div><div class="label">Delivered events · frame</div><div class="num" id="vel">0</div></div><canvas id="spark" aria-label="Actual delivered events per frame"></canvas></div></div><div class="posts" id="posts" aria-live="polite"></div><details><summary>Broadcaster · community questions and replies</summary><p class="hint">Replies are generated from episode questions or questions you explicitly supply. They remain inside this fictional exercise.</p><div class="status" id="broadcastStatus" aria-live="polite">Awaiting approved intervention</div><div id="broadcastReplies" class="posts"></div><label class="label" for="questionsInput">Optional normalized questions JSON</label><textarea id="questionsInput" spellcheck="false" placeholder='[{"id":"q1","text":"…","language":"en"}]'></textarea><button class="btn sm" id="generateReplies" disabled>Generate replies</button></details></section>
-<section class="p mapp" aria-labelledby="mapH"><div class="ph"><h2 id="mapH">Spread map</h2><div class="legend"><span><i style="background:var(--faint)"></i>Neutral / unseen</span><span><i style="background:var(--ember)"></i>Sharing rumor</span><span><i style="background:var(--ember-dim)"></i>Believes</span><span><i style="background:var(--water)"></i>Sharing correction</span><span><i style="background:var(--water-dim)"></i>Corrected</span></div></div>
-<div class="stats"><div class="stat f"><div class="label">Believing now</div><div class="v" id="sBel">—</div></div><div class="stat w"><div class="label">Corrected</div><div class="v" id="sCor">—</div></div><div class="stat"><div class="label">Simulated accounts</div><div class="v" id="sRes">—</div></div></div>
-<div class="mapbox"><canvas id="map" aria-label="Server simulation network in six communities"></canvas></div><div class="transport"><button class="btn icon" id="play" aria-label="Play recorded frames">▶</button><input type="range" id="scrub" min="0" max="0" value="0" step="0.01" aria-label="Recorded frame timeline"><span class="tlabel" id="tLabel">T+0</span></div>
-<div class="whatif"><div><div class="label">Independent counterfactual branches</div><div class="controls"><button class="btn sm" id="branchNone" disabled>Fork · no correction</button><button class="btn sm" id="branchCorrection" disabled>Fork · correction</button><select id="branches" aria-label="Select branch" disabled></select></div><div class="cf" id="comparisons"></div><p class="hint">Only completed server trajectories are compared. Each branch keeps its own simulation history.</p></div><div><div class="label">Network over time · rumor vs correction</div><canvas id="chart" aria-label="Recorded believing and corrected fractions"></canvas></div></div><div class="group-details" id="groupDetails" aria-label="Six community reactions and episode feedback"></div><p class="hint">Fictional persona feedback, not trained reinforcement learning or population estimates.</p></section>
-<section class="p ev" aria-labelledby="evH"><div class="ph"><h2 id="evH">Evidence board</h2><div style="display:flex;gap:8px;align-items:center"><span class="label" id="evLabel">Gemini vision</span><button class="btn sm" id="anBtn">Analyze a new image</button><input type="file" id="anFile" accept="image/*" hidden></div></div>
-<div class="photo" id="photo"><img id="evImg" alt="Viral photo attached to the post"><div class="boxes" id="evBoxes"></div></div>
-<p class="hint" id="evidenceStatus">Start an episode. Gemini verifies the viral photo automatically.</p>
-<ul class="finds" id="findings"></ul>
-<div class="debate"><div class="side pro"><h4>Prosecutor <span class="model gemini">Gemini</span></h4><ul id="proList"></ul></div><div class="side def"><h4>Defender <span class="model gemini">Gemini</span></h4><ul id="defList"></ul></div></div>
-<div class="verdict"><div class="vtop"><div><div class="label">Judge verdict</div><div class="vword" id="verdict">Awaiting</div></div><div class="conf"><div class="label" style="display:flex;justify-content:space-between"><span>Confidence</span><span id="confidence">–</span></div><div class="bar"><i id="confBar" style="width:0%"></i></div></div></div><p class="hint" id="reasoning"></p><div class="label">Missing evidence</div><div class="miss" id="miss"></div><details><summary>Inspect evidence packet</summary><pre class="packet" id="evidencePacket"></pre></details></div>
-<div class="controls"><button class="btn" id="verifyGemini" disabled>Run Gemini verification</button></div>
-<details><summary>Import evidence JSON manually</summary><textarea id="evidenceInput" spellcheck="false" placeholder="Paste versioned evidence packet"></textarea><button class="btn sm" id="importEvidence" disabled>Import evidence</button></details></section>
-<section class="p lab" aria-labelledby="labH"><div class="ph"><h2 id="labH">Correction lab</h2><span class="label">Society Sim · 20 Grok personas</span></div><p class="hint">Generate episode correction drafts, then choose and edit a framing. Scores appear only when the server has computed them.</p><button class="btn" id="draft" disabled>Draft corrections</button><div class="framings" id="framings"><p class="empty">No corrections drafted.</p></div></section>
-<section class="p ed" aria-labelledby="edH"><div class="ph"><h2 id="edH">Editor</h2><span class="model voiskey">Voiskey</span></div><div class="mic"><button class="micbtn" id="mic" aria-label="Hold to talk"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1a7 7 0 0 0 6-6.9z"/></svg></button><div class="wave" id="wave" aria-hidden="true"></div></div>
-<textarea class="dict" id="dict" rows="2" spellcheck="false" aria-label="Voice note from Voiskey" placeholder="Click here, hold Right Alt and speak. Voiskey types your note, then it's sent."></textarea>
-<div class="edtools"><span class="label">Or hold the mic</span><button class="linkbtn" id="replayBtn">Replay demo dictation</button></div>
-<div class="raw" id="raw">&nbsp;</div>
-<details><summary>Import normalized intervention JSON</summary><textarea id="voiceInput" spellcheck="false" placeholder='{"text_en":"…","text_es":"…","target_groups":[0],"framing_key":"B"}'></textarea><button class="btn sm" id="importVoice">Load into editor</button></details><div class="outs"><label class="out" for="enOut"><span class="oh">EN · intervention copy <span id="enLen">0</span></span><textarea id="enOut" maxlength="280"></textarea></label><label class="out" for="esOut"><span class="oh">ES · intervention copy <span id="esLen">0</span></span><textarea id="esOut" maxlength="280"></textarea></label></div><div class="label">Target communities</div><div class="targets" id="targets"></div><div class="approve"><button class="btn" id="propose" disabled>Propose exact copy</button><button class="btn primary" id="approve" disabled>Approve intervention</button><span class="note" id="apNote">Edits require a new proposal. Applies only inside this simulation.</span></div><div class="status" id="approvalStatus" aria-live="polite">No pending proposal</div></section>
-</main></div><div class="toast" id="toast" role="status" hidden></div></body></html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Firebreak Response Desk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/static/styles.css">
+<script src="/static/app.js" defer></script>
+<script src="/static/map.js" defer></script>
+<script src="/static/evidence.js" defer></script>
+<script src="/static/editor.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <h1>Fire<span>break</span></h1>
+    <p>Rumor response desk for a fictional wildfire exercise</p>
+  </div>
+  <ol class="rail" id="rail" aria-label="Agents"></ol>
+  <div class="actions">
+    <label class="sr" for="mode">Run with</label>
+    <select id="mode">
+      <option value="fixture">Simulated town</option>
+      <option value="live">Live Grok Bots</option>
+      <option value="replay">Saved run</option>
+    </select>
+    <select id="recordings" aria-label="Saved run" hidden></select>
+    <button class="btn" id="moreBtn" aria-expanded="false" aria-controls="drawer">Details</button>
+    <button class="btn primary cta" id="cta">Start episode</button>
+  </div>
+</header>
+
+<div class="guide" role="status" aria-live="polite">
+  <span class="clock" id="clock">T+0 min</span>
+  <span id="guide">Start an episode. A rumor about the I-15 fire is about to spread.</span>
+</div>
+<div class="alert" id="alert" role="alert" hidden><span id="alertText"></span><button class="x" id="alertClose" aria-label="Dismiss">×</button></div>
+
+<main class="desk">
+  <section class="panel feed" aria-labelledby="feedH">
+    <h2 id="feedH">Feed</h2>
+    <div class="incident" id="incident">
+      <p class="claim" id="claim">Waiting for the scenario…</p>
+      <p class="meta" id="incidentMeta">Scout groups matching posts into one incident.</p>
+    </div>
+    <ol class="posts" id="posts" aria-live="polite"></ol>
+  </section>
+
+  <section class="panel town" aria-labelledby="townH">
+    <div class="ph">
+      <h2 id="townH">The town</h2>
+      <div class="legend" aria-hidden="true"><span class="k rumor">Believes the rumor</span><span class="k fix">Corrected</span><span class="k idle">Not reached</span></div>
+    </div>
+    <div class="stats">
+      <div class="stat rumor"><b id="sBel">0%</b><span>believe the rumor</span></div>
+      <div class="stat fix"><b id="sCor">0%</b><span>corrected</span></div>
+      <div class="stat"><b id="sReach">0</b><span>of 240 accounts reached</span></div>
+    </div>
+    <div class="mapbox"><canvas id="map" aria-label="240 simulated accounts in six communities, showing the rumor and the correction spreading"></canvas></div>
+    <div class="rounds">
+      <button class="btn icon" id="replayRounds" aria-label="Replay the rounds">▶</button>
+      <input type="range" id="scrub" min="0" max="0" value="0" step="1" aria-label="Round">
+      <span class="tlabel" id="tLabel">Round 0</span>
+    </div>
+    <ul class="groups" id="groups" aria-label="Communities"></ul>
+  </section>
+
+  <section class="panel evidence" aria-labelledby="evH">
+    <div class="ph">
+      <h2 id="evH">Evidence</h2>
+      <button class="btn sm" id="anBtn">Check your own image</button>
+      <input type="file" id="anFile" accept="image/*" hidden>
+    </div>
+    <div class="photo" id="photo"><img id="evImg" alt="The viral photo attached to the post"><div class="boxes" id="evBoxes"></div><div class="scan" aria-hidden="true"></div></div>
+    <ol class="finds" id="findings"></ol>
+    <div class="debate">
+      <div class="side pro"><h3>Prosecutor</h3><ul id="proList"></ul></div>
+      <div class="side def"><h3>Defender</h3><ul id="defList"></ul></div>
+    </div>
+    <div class="verdict" id="verdictBox">
+      <div class="vrow"><span class="vword" id="verdict">Waiting</span><div class="conf"><div class="bar"><i id="confBar"></i></div><span id="confidence"></span></div></div>
+      <p class="reason" id="reasoning"></p>
+      <div class="miss" id="miss"></div>
+    </div>
+    <p class="source" id="evidenceSource"></p>
+  </section>
+
+  <section class="panel lab" aria-labelledby="labH">
+    <h2 id="labH">Corrections</h2>
+    <div class="framings" id="framings"></div>
+  </section>
+
+  <section class="panel editor" aria-labelledby="edH">
+    <div class="ph"><h2 id="edH">Editor</h2><span class="sponsor voiskey">Voiskey</span></div>
+    <div class="voice">
+      <button class="micbtn" id="mic" aria-label="Hold to record a voice note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1a7 7 0 0 0 6-6.9z"/></svg></button>
+      <textarea class="dict" id="dict" rows="2" spellcheck="false" aria-label="Voice note" placeholder="Click here, hold Right Alt, and say what to change."></textarea>
+    </div>
+    <p class="raw" id="raw" hidden></p>
+    <div class="copy">
+      <label><span class="lh">English <em id="enLen">0/280</em></span><textarea id="enOut" maxlength="280" rows="3" placeholder="Pick a correction to edit it here."></textarea></label>
+      <label><span class="lh">Spanish <em id="esLen">0/280</em></span><textarea id="esOut" maxlength="280" rows="3"></textarea></label>
+    </div>
+    <fieldset class="targets"><legend>Send to</legend><div id="targets"></div></fieldset>
+    <div class="approve">
+      <button class="btn primary" id="approve" disabled>Approve and send</button>
+      <span class="note" id="apNote">You approve the exact text shown. Nothing posts outside this exercise.</span>
+    </div>
+    <button class="linkbtn" id="replayBtn">Play the sample voice note</button>
+  </section>
+</main>
+
+<aside class="drawer" id="drawer" aria-label="Episode details" hidden>
+  <div class="dh"><h2>Details</h2><button class="x" id="drawerClose" aria-label="Close details">×</button></div>
+  <section><h3>Status</h3><p id="dStatus">No episode yet.</p><p id="dBots"></p><label class="check"><input type="checkbox" id="auto"> Run rounds automatically</label></section>
+  <section><h3>What-if branches</h3><p class="hint">Fork the town at the decision point and compare outcomes.</p>
+    <div class="row"><button class="btn sm" id="branchNone" disabled>Fork without a correction</button><button class="btn sm" id="branchCorrection" disabled>Fork with the editor's copy</button></div>
+    <select id="branches" aria-label="Branch" disabled></select><div id="comparisons" class="cmp"></div></section>
+  <section><h3>Recording</h3><button class="btn sm" id="record" disabled>Save this run</button></section>
+  <section><h3>Replies</h3><p id="broadcastStatus" class="hint">Available after the correction goes out.</p><textarea id="questionsInput" rows="3" spellcheck="false" placeholder='Optional questions: [{"id":"q1","text":"…","language":"en"}]'></textarea></section>
+  <section><h3>Import evidence</h3><textarea id="evidenceInput" rows="3" spellcheck="false" placeholder="Paste an evidence packet (JSON)"></textarea><button class="btn sm" id="importEvidence" disabled>Import</button><button class="btn sm" id="verifyGemini" disabled>Run Gemini again</button></section>
+  <section><h3>Import editor copy</h3><textarea id="voiceInput" rows="3" spellcheck="false" placeholder='{"text_en":"…","text_es":"…","target_groups":[0],"framing_key":"B"}'></textarea><button class="btn sm" id="importVoice">Load into editor</button></section>
+  <section><h3>Evidence packet</h3><pre id="evidencePacket">None yet.</pre></section>
+</aside>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+</body>
+</html>

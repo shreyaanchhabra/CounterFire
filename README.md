@@ -18,12 +18,14 @@ Copy `.env.example` to `.env` and fill in `GEMINI_API_KEY` (and the Grokbots val
 
 ### The demo flow
 
-1. **Start episode.** Gemini verifies the viral photo automatically: Prosecutor and Defender argue over the image, the Judge rules, and the dashed boxes mark the evidence (the road sign reads Loop 101, Scottsdale Rd). The result is imported as the episode's evidence packet. **Run Gemini verification** reruns it; **Analyze a new image** runs the debate live on any image (shown only, it doesn't change the episode).
-2. **Draft corrections.** Grok's Comms Bot writes A Fact check, B Action first, C Neighbor voice in English and Spanish.
-3. **Next round** twice. Six Grok community Bots play 20 personas on the 240-account map.
-4. **Voiskey.** Click the Editor's dictation box, hold **Right Alt**, and speak, for example: "Use action first. Send it to Poway, the parent groups and the influencers. Do Spanish too and publish it." Voiskey types the note; after 1.5 seconds it goes to Gemini, which rewrites the copy, sets the framing and target communities, and proposes the exact copy. Voiskey translation (Right Alt + Right Shift) also works inside the Spanish box. Backup: hold the purple mic (Gemini transcribes it), or **Replay demo dictation**.
-5. **Approve intervention.** Approval is always a click on the exact, hashed copy. Voice never approves on its own.
-6. **Next round** twice more, then **Generate replies** (Broadcaster), branches, and **Save recording**.
+The blue button in the header always shows the next step, so the whole demo is one button plus your voice.
+
+1. **Start episode.** Gemini checks the viral photo on its own: a scan line runs over the image, then the boxes, findings, Prosecutor vs Defender, and the Judge's ruling appear. The result becomes the episode's evidence. **Check your own image** runs the same debate live on any image (shown only, it doesn't change the episode).
+2. **Draft corrections.** Grok writes Fact check, Action first and Neighbor voice in English and Spanish.
+3. **Run round 1** and **Run round 2.** Six Grok community Bots play 20 personas on the 240-account map. Each message delivery travels its edge on the map.
+4. **Decision point.** Pick a correction, or click the Editor's note box, hold **Right Alt**, and talk to Voiskey: "Use action first. Send it to Poway, the parent groups and the influencers. Do Spanish too." Gemini rewrites the copy and sets the communities. Backup: hold the purple mic, or **Play the sample voice note**.
+5. **Approve and send.** You approve the exact text on screen. Voice never approves on its own.
+6. **Run round 3** and **Run round 4,** then **Answer replies.** **Details** (header) holds branches, saved runs, imports and the raw evidence packet.
 
 ### Gemini notes
 
