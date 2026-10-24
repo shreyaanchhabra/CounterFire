@@ -9,3 +9,6 @@ cache/
 node_modules/
 .gbot-state/
 artifacts/
+data/liar/
+*.wav
+*.webm

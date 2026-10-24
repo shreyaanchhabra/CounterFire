@@ -36,3 +36,27 @@ class Settings:
                    mode=os.getenv("DEMO_MODE", "hybrid").strip(),
                    timeout=float(os.getenv("GROK_TIMEOUT_SECONDS", "8")),
                    cache_dir=cache_dir)
+
+# Gemini/Voiskey configuration from the teammate branch. No credentials are
+# required merely to import the app or run its fixture exercise.
+DATA = ROOT / 'data'
+FIXTURES = DATA / 'fixtures'
+FRONTEND = ROOT / 'frontend'
+CACHE = ROOT / 'cache'
+TIMEOUTS = {'prosecutor':45,'defender':30,'judge':30,'analyze':90,'editor':45,'draft_ask':15}
+
+
+def refresh_gemini_settings():
+    from dotenv import dotenv_values
+    values={**dotenv_values(ROOT/'.env'),**os.environ}
+    for name in ('GEMINI_API_KEY','GEMINI_MODEL','GEMINI_JUDGE_MODEL','VOISKEY_API_KEY','VOISKEY_BASE_URL'):
+        globals()[name]=(values.get(name) or '').strip()
+    globals()['GEMINI_FALLBACK_MODELS']=[v.strip() for v in (values.get('GEMINI_FALLBACK_MODEL') or '').split(',') if v.strip()]
+
+
+def scenario():
+    import json
+    return json.loads((DATA/'scenario_sd1024.json').read_text())
+
+
+refresh_gemini_settings()

@@ -182,3 +182,27 @@ input[type=range]{flex:1;min-width:0;accent-color:var(--flame)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 
 [hidden]{display:none!important}button:disabled{opacity:.45;cursor:default}select,textarea,input[type=text]{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:7px;max-width:100%}textarea{width:100%;resize:vertical;min-height:80px}select{font-family:var(--mono);font-size:12px}.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.error{color:var(--ember);white-space:pre-wrap}.status{font-family:var(--mono);font-size:12px;color:var(--muted)}.group-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.group-details details{border:1px solid var(--line);border-radius:5px;padding:7px;font-size:12px}.group-details summary{cursor:pointer}.group-details pre,pre.packet{white-space:pre-wrap;overflow-wrap:anywhere;font-size:11px;color:var(--muted);max-height:280px;overflow:auto}.targets{display:flex;flex-wrap:wrap;gap:7px;font-size:12px}.targets label{display:flex;align-items:center;gap:4px}.photo .hint{padding:12px}.cf{grid-template-columns:repeat(auto-fit,minmax(90px,1fr))}.raw{min-height:0}.fr q{white-space:pre-wrap}.fr .score{font-family:var(--mono);font-size:11px}.mapbox{min-height:250px}
+
+/* Gemini evidence occupies the same investigation board as the native society. */
+.evidence-tools,.dictation-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.upload-label{font-size:12px;color:var(--muted);display:grid;gap:5px;flex:1;min-width:160px}
+.upload-label input{max-width:100%;font:inherit}
+.evidence-figure{margin:0 0 12px}
+.evidence-image{position:relative;overflow:hidden;border-radius:7px;background:#090b0d;line-height:0}
+.evidence-image img{display:block;width:100%;height:auto}
+#evidenceBoxes{position:absolute;inset:0;pointer-events:none}
+.evidence-box{position:absolute;pointer-events:auto;border:2px solid var(--ember);background:rgba(255,112,63,.06);padding:0;min-width:0;min-height:0;cursor:pointer}
+.evidence-box span{position:absolute;top:-1px;left:-1px;background:var(--ember);color:#140d08;font:700 11px 'IBM Plex Mono',monospace;line-height:19px;min-width:19px;text-align:center}
+.evidence-figure figcaption{font-size:11px;line-height:1.5;color:var(--muted);padding:7px 1px}
+.finds li.selected{background:rgba(255,112,63,.12)}
+.debate ul{margin:0;padding-left:16px;font-size:12px;line-height:1.6}
+#reasoning{font-size:13px;line-height:1.65;margin:10px 0}
+.missing-evidence{display:grid;gap:9px;margin:12px 0}
+.missing-item{border-top:1px solid var(--line);padding-top:10px;display:grid;gap:5px;font-size:12px}
+.missing-item small{color:var(--muted)}
+.missing-item button{justify-self:start}
+#analysisStatus[data-status=error]{color:var(--ember)}
+#dictation,#askDraft{width:100%;min-height:90px;margin:8px 0;box-sizing:border-box}
+#recordVoice{width:auto;height:auto;border-radius:6px;font-size:12px;padding:9px 12px}
+#transcriptPanel{border-left:2px solid var(--water);padding-left:12px;margin:12px 0}
+#cleanNote{font-size:13px;line-height:1.6}

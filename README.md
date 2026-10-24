@@ -2,7 +2,7 @@
 
 Grok agents for a misinformation response desk: detect a shared claim, draft bilingual responses, compare fictional audience reactions, and prepare approved corrections for an in-app feed.
 
-Implemented: the connected FastAPI desk, native Grokbots Scout/Drafter/Broadcaster, six autonomous community Bots, the social environment, exact-copy intervention approval, counterfactual branches, and durable recording/replay. Gemini verification and Voiskey transcription are teammate integrations; the desk accepts their normalized JSON. The original `firebreak-ui.html` remains available at `/baseline`.
+Implemented: the connected FastAPI desk, native Grokbots Scout/Drafter/Broadcaster, six autonomous community Bots, the social environment, exact-copy intervention approval, counterfactual branches, and durable recording/replay. Gemini Prosecutor, Defender, Judge and dictation editing are merged from the teammate branch. Voiskey types into the editor; Gemini handles uploaded audio when needed. The original `firebreak-ui.html` remains available at `/baseline`.
 
 ## Run the connected app
 
@@ -35,7 +35,19 @@ The local API accepts evidence at `POST /api/episodes/{id}/evidence` with `verdi
 
 The complete native exercise was verified on October 24, 2026: episode `038f8dc1-ba99-47a2-b33a-14abe3f9b0de` completed Scout, four six-community rounds, three bilingual drafts, exact-copy approval and two bilingual Broadcaster replies. Its evidence was an explicitly labeled fictional exercise bulletin, not a Gemini result. Recording `3d46185c-903f-4ac9-ae68-b43606535f7c` replayed with identical frames/feed and a fresh approval. These local audit IDs are not credentials.
 
-The test suite has 80 passing tests, including native transport integration using authenticated task pulls and durable callbacks, partial-round rejection, approvals, branching, evidence isolation and replay. Native services were restarted after the test; episodes persist on disk.
+The test suite has 88 passing tests, including native transport integration using authenticated task pulls and durable callbacks, partial-round rejection, approvals, branching, evidence isolation and replay. Native services were restarted after the test; episodes persist on disk.
+
+## Gemini evidence and Voiskey integration
+
+`origin/gemini` is merged into the same native Grokbots desk. Start an episode, choose **Analyze exercise image**, then **Draft corrections**. The board shows image evidence boxes, Prosecutor and Defender arguments, the Judge verdict/confidence/reasoning, and missing evidence. Evidence request buttons prepare text without sending it. Arbitrary image uploads are always analyzed live and never receive unrelated fixture findings.
+
+Fixture mode loads the teammate's clearly labeled exercise fixtures; live analysis needs `GEMINI_API_KEY` in `.env`. Optional `GEMINI_MODEL`, `GEMINI_JUDGE_MODEL` and comma-separated `GEMINI_FALLBACK_MODEL` configure the merged client. Install the updated requirements (`google-genai` and `python-multipart` included). This laptop currently has no Gemini key, so integration is verified with fixtures and mocked live boundaries rather than a live Gemini response. Native Grokbots remain on their existing official webhook transport.
+
+Type or use Voiskey desktop dictation in the Comms officer note, then choose **Apply note to draft**. Gemini parses the note into editable copy; the hold-to-record button optionally sends audio to Gemini. Fixture mode shows a scripted edit explicitly. Load the edited copy, review it, propose it and explicitly approve its hash at round two. An interpreted spoken approval never automatically approves anything. Changing evidence clears old dictation results and proposals; after approval, evidence is frozen.
+
+New episode routes: `/analyze` (exercise), `/analyze-image` (multipart image), `/voice` (JSON note), `/voice-audio` (multipart audio), `/draft-ask` (draft only). They share `/api/episodes/{id}` and use the existing SSE snapshots for progress. Image uploads are limited to 15 MB and stored outside Git. Live errors preserve prior evidence and are visible; they do not silently use fixture findings.
+
+The original Gemini smoke/eval tools remain available as `scripts/smoke_gemini.py`, `scripts/run_eval.py`, and `scripts/warm_gemini_cache.py`; existing xAI smoke/cache script names are preserved.
 
 ## Legacy API/CLI adapters
 

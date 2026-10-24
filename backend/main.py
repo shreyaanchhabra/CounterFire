@@ -1,6 +1,7 @@
 """Local Firebreak desk. Expose only the separate callback service publicly."""
 import asyncio
 import json
+import re
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
@@ -45,6 +46,13 @@ def create_app(manager=None):
     @app.get('/baseline')
     def baseline():return FileResponse(ROOT/'firebreak-ui.html')
     app.mount('/static',StaticFiles(directory=ROOT/'frontend'),name='static')
+    app.mount('/data',StaticFiles(directory=ROOT/'data'),name='data')
+    @app.get('/api/media/{name}')
+    def media(name:str):
+        if not re.fullmatch(r'[a-f0-9]{64}\.(png|jpg|webp|gif)',name):raise HTTPException(404,'Unknown image')
+        path=controller.directory/'uploads'/name
+        if not path.is_file():raise HTTPException(404,'Unknown image')
+        return FileResponse(path,headers={'X-Content-Type-Options':'nosniff'})
     @app.get('/api/health')
     def health():return controller.health()
     @app.get('/api/scenario')
@@ -71,6 +79,23 @@ def create_app(manager=None):
         return StreamingResponse(stream(),media_type='text/event-stream',headers={'Cache-Control':'no-cache'})
     @app.post('/api/episodes/{identifier}/{operation:path}')
     async def mutate(identifier:str,operation:str,request:Request):
+        if operation in ('analyze-image','voice-audio'):
+            if int(request.headers.get('content-length','0'))>16*1024*1024:raise HTTPException(413,'Upload exceeds 15 MB')
+            form=await request.form(max_files=1)
+            kind='image' if operation=='analyze-image' else 'audio'
+            file=form.get(kind)
+            if file is None or not hasattr(file,'read'):raise HTTPException(400,f'Supply an {kind} file')
+            try:data=await file.read(15*1024*1024+1)
+            finally:await file.close()
+            mime=(file.content_type or '').split(';')[0]
+            if len(data)>15*1024*1024:raise HTTPException(413,'Upload exceeds 15 MB')
+            if not data or not mime.startswith(kind+'/'):raise HTTPException(415,f'Expected {kind} content')
+            if kind=='image':
+                valid={'image/png':data.startswith(b'\x89PNG\r\n\x1a\n'),'image/jpeg':data.startswith(b'\xff\xd8\xff'),
+                       'image/webp':data.startswith(b'RIFF') and data[8:12]==b'WEBP','image/gif':data[:6] in (b'GIF87a',b'GIF89a')}
+                if not valid.get(mime):raise HTTPException(415,'Use a PNG, JPEG, WebP or GIF image')
+                return controller.analyze(identifier,data,mime)
+            return controller.voice(identifier,None,str(form.get('framing_key','B')),audio=data,mime=mime)
         body=await request.json()
         if not isinstance(body,dict):raise ValueError('Expected a JSON object')
         if operation=='advance':return controller.advance(identifier)
@@ -82,6 +107,9 @@ def create_app(manager=None):
         if operation=='select-branch':return controller.select(identifier,body.get('branch_id'))
         if operation=='record':return controller.record(identifier)
         if operation=='replies':return controller.replies(identifier,body.get('questions'))
+        if operation=='analyze':return controller.analyze(identifier)
+        if operation=='voice':return controller.voice(identifier,body.get('text'),body.get('framing_key','B'),body.get('source',''))
+        if operation=='draft-ask':return await asyncio.to_thread(controller.draft_ask,identifier,body.get('item'),body.get('ask_target'))
         raise HTTPException(404,'Unknown operation')
     return app
 

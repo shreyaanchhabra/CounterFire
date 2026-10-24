@@ -17,6 +17,7 @@ from backend.config import ROOT
 from backend.grokbots_return import JobStore, RoundTask, callback_observation, canonical
 from backend.schemas import BroadcasterReplies, DrafterOut, GROUPS, Incident, ReplyQuestion, ScoutSelection
 from backend.simulation import Simulation
+from backend.evidence_service import EpisodeEvidence
 
 
 class Conflict(ValueError):
@@ -83,7 +84,7 @@ def fixture_decisions(observation):
     return dict(group_id=gid, decisions=decisions)
 
 
-class EpisodeManager:
+class EpisodeManager(EpisodeEvidence):
     def __init__(self, directory=None, jobs=None):
         self.directory = Path(directory or ROOT / 'cache/society')
         self.directory.mkdir(parents=True, exist_ok=True)
@@ -97,10 +98,13 @@ class EpisodeManager:
         self.fixtures = json.loads((ROOT / 'data/grok_demo_outputs.json').read_text())
 
     def health(self):
+        from backend import config
+        config.refresh_gemini_settings()
         env = environment()
         groups = [bool(env.get(f'GROKBOTS_GROUP_{i}_URL') and env.get(f'GROKBOTS_GROUP_{i}_KEY')) for i in range(6)]
         return {'status': 'ok', 'bots': {'groups': groups, 'comms': bool(env.get('GROKBOTS_WEBHOOK_URL') and env.get('GROKBOTS_WEBHOOK_KEY'))},
-                'callback_ready': bool(env.get('GROKBOTS_CALLBACK_BASE_URL')), 'modes': ['fixture','live','replay']}
+                'callback_ready': bool(env.get('GROKBOTS_CALLBACK_BASE_URL')), 'modes': ['fixture','live','replay'],
+                'gemini':{'configured':bool(config.GEMINI_API_KEY),'model':config.GEMINI_MODEL or 'auto'},'voiskey':{'mode':'desktop dictation or Gemini audio'}}
 
     def _load(self, identifier):
         if identifier not in self.episodes:
@@ -152,6 +156,8 @@ class EpisodeManager:
                  'scout':copy.deepcopy(record.get('scout') if record else None),
                  'pending_jobs':[],'recording':record,'branches':{'main':self._branch(sim)}}
             self.episodes[identifier]=e
+            if record:
+                for name in ('editor','editor_status','analysis'):e[name]=copy.deepcopy(record.get(name))
             if record and not record.get('intervention'):
                 e['branches']['main']['no_intervention']=True
             self._touch(e)
@@ -167,18 +173,26 @@ class EpisodeManager:
             if len(branches)>1 and len(rounds)==1:
                 comparisons=[{'branch_id':v['branch_id'],'round':v['round'],'mean_belief':v['belief'],'label':'Illustrative simulated outcome'} for v in branches]
             status=b['status']
+            analysis=e.get('analysis') or {}
+            stages=analysis.get('stages',{})
             pipeline=[{'agent':'scout','status':'done' if e['scout'] else 'waiting','summary':e['scout']['summary'] if e['scout'] else 'Waiting for incident clustering'},
                 {'agent':'judge','status':'done' if e['evidence'] else 'waiting','summary':(e['evidence'].get('verdict','Imported evidence') if e['evidence'] else 'Awaiting teammate Gemini packet')},
                 {'agent':'drafter','status':'done' if e['drafts'] else 'waiting','summary':'Three bilingual corrections' if e['drafts'] else 'Needs evidence and drafting'},
                 {'agent':'society','status':'running' if status=='running' else 'done' if b['sim'].round else 'waiting','summary':f'Six communities · round {b["sim"].round}'},
                 {'agent':'editor','status':'ready','summary':'Voiskey normalized input or manual edit'},
                 {'agent':'broadcaster','status':'done' if b['approval'] else 'waiting','summary':'Approved in-app correction' if b['approval'] else 'Waiting for exact-copy approval'}]
+            for index,name in enumerate(('prosecutor','defender'),1):
+                pipeline.insert(index,{'agent':name,'status':stages.get(name,'done' if (e['evidence'] or {}).get(name) else 'waiting'),
+                                       'summary':'Gemini image debate' if analysis.get('source')=='gemini' else 'Evidence assessment'})
+            for p in pipeline:
+                if p['agent']=='judge' and stages.get('judge'):p['status']=stages['judge']
             view.update(id=e['id'],mode=e['mode'],status=status,version=e['version'],error=e['error'],
                 pipeline=pipeline,drafts=copy.deepcopy(e['drafts']),evidence=copy.deepcopy(e['evidence']),
                 pending_intervention=copy.deepcopy(b['pending']),approval=copy.deepcopy(b['approval']),branches=branches,
                 comparisons=comparisons,pending_jobs=copy.deepcopy(e['pending_jobs']),scout=copy.deepcopy(e['scout']),
                 broadcast=copy.deepcopy(b.get('broadcast')), source_mode=e['recording']['source_mode'] if e['recording'] else e['mode'],
                 recorded_intervention=copy.deepcopy(e['recording'].get('intervention')) if e['recording'] else None)
+            view.update(analysis=copy.deepcopy(e.get('analysis')),editor=copy.deepcopy(e.get('editor')),editor_status=copy.deepcopy(e.get('editor_status')))
             return view
 
     def _check_mutation(self,e):
@@ -305,6 +319,7 @@ class EpisodeManager:
                 b['sim'].evidence=copy.deepcopy(packet)
                 b['pending']=None
             e['drafts']=None
+            e['editor']=None;e['editor_status']=None
             self._touch(e); return self.view(identifier)
 
     def drafts(self,identifier):
@@ -396,8 +411,9 @@ class EpisodeManager:
             rid=str(uuid4())
             source_mode=e['recording']['source_mode'] if e['recording'] else e['mode']
             value={'id':rid,'source_mode':source_mode,'name':f'{source_mode} · {e["active"]} · {rid[:8]}',
-                   'states':b['history'],'drafts':e['drafts'],'evidence':e['evidence'],'scout':e['scout'],'intervention':b['intervention']}
-            (self.directory/'recordings'/(rid+'.json')).write_text(canonical(value))
+                   'states':b['history'],'drafts':e['drafts'],'evidence':e['evidence'],'scout':e['scout'],'intervention':b['intervention'],
+                   'editor':e.get('editor'),'editor_status':e.get('editor_status'),'analysis':e.get('analysis')}
+            target=self.directory/'recordings'/(rid+'.json');target.write_text(canonical(value));target.chmod(0o600)
             return {**self.view(identifier),'recording_id':rid}
 
     def replies(self,identifier,questions=None):
