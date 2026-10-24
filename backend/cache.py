@@ -54,7 +54,7 @@ class DiskCache:
         cached = None
         try:
             cached = schema.model_validate_json(path.read_text(encoding="utf-8"))
-        except (OSError, ValidationError):
+        except (OSError, UnicodeError, ValidationError):
             pass
         if mode == "replay" or (mode == "hybrid" and prefer_cache and cached is not None):
             if cached is None:

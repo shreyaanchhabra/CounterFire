@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from backend.agents import broadcaster, drafter, scout, society
 from backend.agents.runner import AgentRunner
 from backend.cache import CacheMiss, DiskCache
-from backend.schemas import (BroadcastInput, DraftInput, Framing, GROUPS, ScoutInput,
+from backend.schemas import (BroadcastInput, DraftInput, DrafterOut, Framing, GROUPS, ScoutInput,
                              SocietyInput, SocietyOut)
 
 
@@ -142,8 +142,21 @@ class AgentTests(unittest.TestCase):
 
     def test_broadcaster_rejects_missing_or_unknown_reply_ids(self):
         for replies in [[], [{"question_id": "unknown", "text": "Check updates."}]]:
-            with self.assertRaises(ValueError):
-                broadcaster.run(self.broadcast_input(), self.runner({"replies": replies}))
+            out = broadcaster.run(self.broadcast_input(), self.runner({"replies": replies}))
+            self.assertEqual(out.payload.reply_status, "unavailable")
+            self.assertEqual(out.payload.replies, [])
+            self.assertEqual(len(out.payload.posts), 2)
+        self.assertEqual(list(Path(self.tmp.name).glob("*.json")), [])
+
+    def test_broadcaster_delivers_approved_posts_when_reply_generation_times_out(self):
+        runner = self.runner({})
+        def unavailable(*args, **kwargs):
+            raise TimeoutError("Provider unavailable")
+        runner.provider.generate = unavailable
+        out = broadcaster.run(self.broadcast_input(), runner)
+        self.assertEqual(out.payload.posts[0].text, "  Approved English copy.  ")
+        self.assertEqual(out.payload.reply_status, "unavailable")
+        self.assertEqual(out.payload.replies, [])
 
     def test_broadcaster_without_questions_does_not_need_generation(self):
         inputs = self.broadcast_input().model_copy(update={"questions": [], "post_es": None})
@@ -159,6 +172,9 @@ class AgentTests(unittest.TestCase):
         runner.mode = "replay"
         self.assertEqual(drafter.run(draft_input(), runner).status, "cached")
         self.assertEqual(len(runner.provider.calls), 1)
+        with self.assertRaises(CacheMiss):
+            runner.run("drafter", draft_input(), "A changed prompt", DrafterOut,
+                       lambda model: self.fail("Replay tried generation"))
         for attribute, value in [("model", "another-model"), ("identity", "other-provider")]:
             if attribute == "model":
                 runner.model = value

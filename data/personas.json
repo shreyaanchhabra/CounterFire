@@ -1,0 +1,182 @@
+{
+  "synthetic": true,
+  "label": "Fictional personas. Scores are illustrative, not measured public reactions.",
+  "groups": [
+    {
+      "group_id": 0,
+      "name": "Poway residents",
+      "personas": [
+        {
+          "name": "Alex",
+          "age": 42,
+          "platform": "Facebook",
+          "trust_in_government": "med",
+          "language": "en"
+        },
+        {
+          "name": "Morgan",
+          "age": 34,
+          "platform": "WhatsApp",
+          "trust_in_government": "high",
+          "language": "en"
+        },
+        {
+          "name": "Taylor",
+          "age": 57,
+          "platform": "Nextdoor",
+          "trust_in_government": "low",
+          "language": "en"
+        },
+        {
+          "name": "Jamie",
+          "age": 29,
+          "platform": "Instagram",
+          "trust_in_government": "med",
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "group_id": 1,
+      "name": "Escondido parents (ES)",
+      "personas": [
+        {
+          "name": "Elena",
+          "age": 38,
+          "platform": "WhatsApp",
+          "trust_in_government": "med",
+          "language": "es"
+        },
+        {
+          "name": "Luis",
+          "age": 45,
+          "platform": "Facebook",
+          "trust_in_government": "low",
+          "language": "es"
+        },
+        {
+          "name": "Marisol",
+          "age": 31,
+          "platform": "WhatsApp",
+          "trust_in_government": "high",
+          "language": "es"
+        },
+        {
+          "name": "Diego",
+          "age": 52,
+          "platform": "Facebook",
+          "trust_in_government": "med",
+          "language": "es"
+        }
+      ]
+    },
+    {
+      "group_id": 2,
+      "name": "Local influencers",
+      "personas": [
+        {
+          "name": "Casey",
+          "age": 25,
+          "platform": "Instagram",
+          "trust_in_government": "med",
+          "language": "en"
+        },
+        {
+          "name": "Jordan",
+          "age": 33,
+          "platform": "X",
+          "trust_in_government": "low",
+          "language": "en"
+        },
+        {
+          "name": "Robin",
+          "age": 28,
+          "platform": "TikTok",
+          "trust_in_government": "high",
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "group_id": 3,
+      "name": "Retirees on Facebook",
+      "personas": [
+        {
+          "name": "Pat",
+          "age": 72,
+          "platform": "Facebook",
+          "trust_in_government": "high",
+          "language": "en"
+        },
+        {
+          "name": "Drew",
+          "age": 68,
+          "platform": "Facebook",
+          "trust_in_government": "med",
+          "language": "en"
+        },
+        {
+          "name": "Chris",
+          "age": 77,
+          "platform": "Facebook",
+          "trust_in_government": "low",
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "group_id": 4,
+      "name": "Reporters",
+      "personas": [
+        {
+          "name": "Avery",
+          "age": 36,
+          "platform": "X",
+          "trust_in_government": "med",
+          "language": "en"
+        },
+        {
+          "name": "Riley",
+          "age": 48,
+          "platform": "Newsroom",
+          "trust_in_government": "low",
+          "language": "en"
+        },
+        {
+          "name": "Quinn",
+          "age": 30,
+          "platform": "X",
+          "trust_in_government": "high",
+          "language": "en"
+        }
+      ]
+    },
+    {
+      "group_id": 5,
+      "name": "Skeptics",
+      "personas": [
+        {
+          "name": "Sam",
+          "age": 41,
+          "platform": "Reddit",
+          "trust_in_government": "low",
+          "language": "en"
+        },
+        {
+          "name": "Jess",
+          "age": 27,
+          "platform": "X",
+          "trust_in_government": "low",
+          "language": "en"
+        },
+        {
+          "name": "Lee",
+          "age": 60,
+          "platform": "Facebook",
+          "trust_in_government": "med",
+          "language": "en"
+        }
+      ]
+    }
+  ]
+}

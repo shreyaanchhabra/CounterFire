@@ -190,6 +190,7 @@ class FeedPost(Contract):
 class BroadcasterOut(Contract):
     posts: list[FeedPost]
     replies: list[FeedPost]
+    reply_status: Literal["done", "unavailable", "not_requested"]
 
 
 T = TypeVar("T", bound=BaseModel)

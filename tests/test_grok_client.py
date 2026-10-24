@@ -2,7 +2,7 @@ import json
 import unittest
 
 import httpx
-from openai import AuthenticationError, BadRequestError
+from openai import APITimeoutError, AuthenticationError, BadRequestError
 from pydantic import BaseModel
 
 from backend.clients.grok_client import GrokClient, GrokOutputError
@@ -95,6 +95,15 @@ class ClientTests(unittest.TestCase):
                 {"id": "available-model", "object": "model", "created": 1, "owned_by": "xai"}]})))
         self.addCleanup(client.close)
         self.assertEqual(client.list_models(), ["available-model"])
+
+    def test_transport_timeout_is_not_silently_retried(self):
+        calls = []
+        def handler(request):
+            calls.append(request)
+            raise httpx.ReadTimeout("Timed out", request=request)
+        with self.assertRaises(APITimeoutError):
+            self.client(handler).generate("System", "Data", Answer)
+        self.assertEqual(len(calls), 1)
 
 
 if __name__ == "__main__":

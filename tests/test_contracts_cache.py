@@ -77,6 +77,13 @@ class CacheTests(unittest.TestCase):
             self.call(framing, "replay")
         self.assertEqual(self.call(framing).status, "done")
 
+    def test_invalid_utf8_cache_is_a_miss_and_can_be_repaired(self):
+        self.call(framing)
+        next(Path(self.tmp.name).glob("*.json")).write_bytes(b"\xff\xfe")
+        with self.assertRaises(CacheMiss):
+            self.call(framing, "replay")
+        self.assertEqual(self.call(framing).status, "done")
+
 
 if __name__ == "__main__":
     unittest.main()

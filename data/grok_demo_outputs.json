@@ -1,0 +1,181 @@
+{
+  "label": "HAND-AUTHORED SYNTHETIC FIXTURES. These are not Grok API responses.",
+  "scout": {
+    "claim": "The fire crossed I-15 at Rancho Bernardo and Poway should evacuate now.",
+    "selected_post_ids": [
+      "p01",
+      "p02",
+      "p03",
+      "p04",
+      "p05",
+      "p06",
+      "p07",
+      "p08",
+      "p09",
+      "p10",
+      "p11",
+      "p12",
+      "p13",
+      "p14",
+      "p15",
+      "p16",
+      "p17",
+      "p18",
+      "p19",
+      "p20",
+      "p21",
+      "p22",
+      "p23",
+      "p24"
+    ],
+    "summary": "A photo claiming the fire crossed I-15 is spreading in English and Spanish."
+  },
+  "drafter": {
+    "framings": [
+      {
+        "key": "A",
+        "name": "Fact check",
+        "text_en": "MISLEADING: This photo shows a different road. It does not establish where the fire is. Check official evacuation updates before sharing: https://www.readysandiego.org/",
+        "text_es": "ENGAÑOSO: La foto muestra otra carretera y no confirma dónde está el incendio. Antes de compartir, consulta los avisos oficiales: https://www.readysandiego.org/"
+      },
+      {
+        "key": "B",
+        "name": "Action first",
+        "text_en": "Check official evacuation updates before sharing: https://www.readysandiego.org/ The viral photo shows another road. It does not establish the current fire location.",
+        "text_es": "Antes de compartir, consulta los avisos oficiales de evacuación: https://www.readysandiego.org/ La foto viral muestra otra carretera y no confirma dónde está el incendio."
+      },
+      {
+        "key": "C",
+        "name": "Neighbor voice",
+        "text_en": "Neighbors, please check official evacuation updates before forwarding that photo: https://www.readysandiego.org/ It shows a different road and does not establish the fire location.",
+        "text_es": "Vecinos, antes de reenviar esa foto, revisen los avisos oficiales: https://www.readysandiego.org/ La imagen muestra otra carretera y no confirma dónde está el incendio."
+      }
+    ]
+  },
+  "society": {
+    "A": {
+      "framing_key": "A",
+      "scores": [
+        {
+          "group_id": 0,
+          "belief_drop": 0.55,
+          "reaction": "I will check the official source before sharing."
+        },
+        {
+          "group_id": 1,
+          "belief_drop": 0.45,
+          "reaction": "Voy a revisar los avisos oficiales."
+        },
+        {
+          "group_id": 2,
+          "belief_drop": 0.6,
+          "reaction": "I will check the official source before sharing."
+        },
+        {
+          "group_id": 3,
+          "belief_drop": 0.4,
+          "reaction": "I will check the official source before sharing."
+        },
+        {
+          "group_id": 4,
+          "belief_drop": 0.8,
+          "reaction": "I will check the official source before sharing."
+        },
+        {
+          "group_id": 5,
+          "belief_drop": 0.5,
+          "reaction": "I will check the official source before sharing."
+        }
+      ],
+      "es_group_en_only_drop": 0.2
+    },
+    "B": {
+      "framing_key": "B",
+      "scores": [
+        {
+          "group_id": 0,
+          "belief_drop": 0.7,
+          "reaction": "I will check the official source before sharing."
+        },
+        {
+          "group_id": 1,
+          "belief_drop": 0.75,
+          "reaction": "Voy a revisar los avisos oficiales."
+        },
+        {
+          "group_id": 2,
+          "belief_drop": 0.55,
+          "reaction": "I will check the official source before sharing."
+        },
+        {
+          "group_id": 3,
+          "belief_drop": 0.65,
+          "reaction": "I will check the official source before sharing."
+        },
+        {
+          "group_id": 4,
+          "belief_drop": 0.8,
+          "reaction": "I will check the official source before sharing."
+        },
+        {
+          "group_id": 5,
+          "belief_drop": 0.55,
+          "reaction": "I will check the official source before sharing."
+        }
+      ],
+      "es_group_en_only_drop": 0.2
+    },
+    "C": {
+      "framing_key": "C",
+      "scores": [
+        {
+          "group_id": 0,
+          "belief_drop": 0.65,
+          "reaction": "I will check the official source before sharing."
+        },
+        {
+          "group_id": 1,
+          "belief_drop": 0.6,
+          "reaction": "Voy a revisar los avisos oficiales."
+        },
+        {
+          "group_id": 2,
+          "belief_drop": 0.7,
+          "reaction": "I will check the official source before sharing."
+        },
+        {
+          "group_id": 3,
+          "belief_drop": 0.5,
+          "reaction": "I will check the official source before sharing."
+        },
+        {
+          "group_id": 4,
+          "belief_drop": 0.6,
+          "reaction": "I will check the official source before sharing."
+        },
+        {
+          "group_id": 5,
+          "belief_drop": 0.4,
+          "reaction": "I will check the official source before sharing."
+        }
+      ],
+      "es_group_en_only_drop": 0.2
+    }
+  },
+  "broadcaster": {
+    "replies": [
+      {
+        "question_id": "q1",
+        "text": "This photo cannot tell us whether Poway is safe. Check current official evacuation updates: https://www.readysandiego.org/"
+      },
+      {
+        "question_id": "q2",
+        "text": "I hear your concern. Please check the current official evacuation updates and share the source with neighbors: https://www.readysandiego.org/"
+      },
+      {
+        "question_id": "q3",
+        "text": "Esta foto no confirma la situación en Ramona. Consulta los avisos oficiales de evacuación: https://www.readysandiego.org/"
+      }
+    ]
+  }
+}

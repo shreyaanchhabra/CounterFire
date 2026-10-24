@@ -1,0 +1,210 @@
+{
+  "incident_id": "SD-1024",
+  "synthetic": true,
+  "label": "Fictional wildfire exercise. Not a current incident report.",
+  "claim": "The fire crossed I-15 at Rancho Bernardo and Poway should evacuate now.",
+  "posts": [
+    {
+      "id": "p01",
+      "timestamp": "2026-10-24T19:20:00-07:00",
+      "text": "FIRE JUST JUMPED THE 15 AT RANCHO BERNARDO. Poway get out NOW.",
+      "language": "en",
+      "who": "@sd_firewatch_live"
+    },
+    {
+      "id": "p02",
+      "timestamp": "2026-10-24T19:20:50-07:00",
+      "text": "My neighbor sent this fire photo. Did it cross I-15? Packing the car.",
+      "language": "en",
+      "who": "@kristen_rb"
+    },
+    {
+      "id": "p03",
+      "timestamp": "2026-10-24T19:21:40-07:00",
+      "text": "Sharing this photo for awareness. They say the fire crossed the 15.",
+      "language": "en",
+      "who": "@PowayParentsNet"
+    },
+    {
+      "id": "p04",
+      "timestamp": "2026-10-24T19:22:30-07:00",
+      "text": "¡El fuego cruzó la 15! Dicen que hay que salir de Poway ya.",
+      "language": "es",
+      "who": "@mamas_escondido"
+    },
+    {
+      "id": "p05",
+      "timestamp": "2026-10-24T19:23:20-07:00",
+      "text": "This viral photo supposedly shows the fire crossing I-15 near Poway.",
+      "language": "en",
+      "who": "@northcounty_dan"
+    },
+    {
+      "id": "p06",
+      "timestamp": "2026-10-24T19:24:10-07:00",
+      "text": "Everyone is forwarding that photo of flames across the 15.",
+      "language": "en",
+      "who": "@rb_neighbor"
+    },
+    {
+      "id": "p07",
+      "timestamp": "2026-10-24T19:25:00-07:00",
+      "text": "Is the fire across I-15? This picture is in our school chat.",
+      "language": "en",
+      "who": "@poway_dad"
+    },
+    {
+      "id": "p08",
+      "timestamp": "2026-10-24T19:25:50-07:00",
+      "text": "A photo claiming fire jumped I-15 is circulating everywhere.",
+      "language": "en",
+      "who": "@roadwatch_demo"
+    },
+    {
+      "id": "p09",
+      "timestamp": "2026-10-24T19:26:40-07:00",
+      "text": "Compartieron esta foto. Dicen que el incendio cruzó la I-15.",
+      "language": "es",
+      "who": "@familias_norte"
+    },
+    {
+      "id": "p10",
+      "timestamp": "2026-10-24T19:27:30-07:00",
+      "text": "Someone says this image means Poway must evacuate now.",
+      "language": "en",
+      "who": "@local_thread"
+    },
+    {
+      "id": "p11",
+      "timestamp": "2026-10-24T19:28:20-07:00",
+      "text": "Group chat says the fire jumped the freeway at Rancho Bernardo.",
+      "language": "en",
+      "who": "@neighborhood_demo"
+    },
+    {
+      "id": "p12",
+      "timestamp": "2026-10-24T19:29:10-07:00",
+      "text": "My feed is full of this fire-crossing-I-15 image.",
+      "language": "en",
+      "who": "@sam_northcounty"
+    },
+    {
+      "id": "p13",
+      "timestamp": "2026-10-24T19:30:00-07:00",
+      "text": "Parents are sharing a picture claiming flames crossed the 15.",
+      "language": "en",
+      "who": "@schoolchat_demo"
+    },
+    {
+      "id": "p14",
+      "timestamp": "2026-10-24T19:30:50-07:00",
+      "text": "Does anyone have a source for the I-15 fire crossing photo?",
+      "language": "en",
+      "who": "@county_reader"
+    },
+    {
+      "id": "p15",
+      "timestamp": "2026-10-24T19:31:40-07:00",
+      "text": "Unconfirmed picture going around: fire across I-15.",
+      "language": "en",
+      "who": "@rb_updates_demo"
+    },
+    {
+      "id": "p16",
+      "timestamp": "2026-10-24T19:32:30-07:00",
+      "text": "¿Es real la foto del fuego al otro lado de la 15?",
+      "language": "es",
+      "who": "@vecinos_poway"
+    },
+    {
+      "id": "p17",
+      "timestamp": "2026-10-24T19:33:20-07:00",
+      "text": "The viral picture says the fire jumped I-15 near Rancho Bernardo.",
+      "language": "en",
+      "who": "@canyon_chat"
+    },
+    {
+      "id": "p18",
+      "timestamp": "2026-10-24T19:34:10-07:00",
+      "text": "Friends are saying leave Poway because of that I-15 fire photo.",
+      "language": "en",
+      "who": "@lee_local"
+    },
+    {
+      "id": "p19",
+      "timestamp": "2026-10-24T19:35:00-07:00",
+      "text": "Sharing the image people say shows fire across the freeway.",
+      "language": "en",
+      "who": "@mia_north"
+    },
+    {
+      "id": "p20",
+      "timestamp": "2026-10-24T19:35:50-07:00",
+      "text": "The photo being shared says the fire crossed I-15.",
+      "language": "en",
+      "who": "@poway_feed"
+    },
+    {
+      "id": "p21",
+      "timestamp": "2026-10-24T19:36:40-07:00",
+      "text": "Is there confirmation for this image of a fire crossing the 15?",
+      "language": "en",
+      "who": "@rb_group"
+    },
+    {
+      "id": "p22",
+      "timestamp": "2026-10-24T19:37:30-07:00",
+      "text": "La foto dice que el fuego cruzó la I-15 y que salgamos de Poway.",
+      "language": "es",
+      "who": "@padres_escondido"
+    },
+    {
+      "id": "p23",
+      "timestamp": "2026-10-24T19:38:20-07:00",
+      "text": "Reposting the I-15 fire crossing claim. Is this current?",
+      "language": "en",
+      "who": "@neighborhood_two"
+    },
+    {
+      "id": "p24",
+      "timestamp": "2026-10-24T19:39:10-07:00",
+      "text": "A picture captioned fire jumped I-15 is spreading in my neighborhood.",
+      "language": "en",
+      "who": "@local_reader"
+    },
+    {
+      "id": "p25",
+      "timestamp": "2026-10-24T19:40:00-07:00",
+      "text": "Our community garden meeting next week starts at noon.",
+      "language": "en",
+      "who": "@garden_club_demo"
+    }
+  ],
+  "verification": {
+    "claim": "The fire crossed I-15 at Rancho Bernardo and Poway should evacuate now.",
+    "verdict": "Misleading",
+    "verified_facts": [
+      "In this fictional exercise, the image shows a different road.",
+      "The image does not establish the current location of the fire."
+    ],
+    "safety_action": "Check official evacuation updates before sharing.",
+    "official_source": "https://www.readysandiego.org/"
+  },
+  "replies": [
+    {
+      "id": "q1",
+      "text": "so is poway safe or not??",
+      "language": "en"
+    },
+    {
+      "id": "q2",
+      "text": "why should we trust the county, you were late last time",
+      "language": "en"
+    },
+    {
+      "id": "q3",
+      "text": "¿y Ramona? ¿también?",
+      "language": "es"
+    }
+  ]
+}

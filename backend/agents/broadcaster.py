@@ -1,6 +1,7 @@
 """Produce in-app feed items. No network publishing capability exists here."""
 
 from backend.agents.runner import AgentRunner
+from backend.cache import CacheMiss
 from backend.schemas import (AgentResult, BroadcastInput, BroadcasterOut,
                              BroadcasterReplies, FeedPost)
 
@@ -21,17 +22,28 @@ def run(inputs: BroadcastInput, runner: AgentRunner) -> AgentResult[BroadcasterO
     if not inputs.approved:
         raise PermissionError("The comms officer must approve the correction first")
 
+    posts = [FeedPost(language="en", text=inputs.post_en)]
+    if inputs.post_es is not None:
+        posts.append(FeedPost(language="es", text=inputs.post_es))
+
     def produce(model):
-        posts = [FeedPost(language="en", text=inputs.post_en)]
-        if inputs.post_es is not None:
-            posts.append(FeedPost(language="es", text=inputs.post_es))
         output = (runner.complete(PROMPT, inputs, BroadcasterReplies, model)
                   if inputs.questions else BroadcasterReplies(replies=[]))
         answers = {reply.question_id: reply for reply in output.replies}
         if len(answers) != len(output.replies) or set(answers) != {q.id for q in inputs.questions}:
             raise ValueError("Broadcaster must answer each question ID exactly once")
-        replies = [FeedPost(language=q.language, text=answers[q.id].text, in_reply_to=q.id)
-                   for q in inputs.questions]
-        return BroadcasterOut(posts=posts, replies=replies)
+        return output
 
-    return runner.run("broadcaster", inputs, PROMPT, BroadcasterOut, produce)
+    try:
+        result = runner.run("broadcaster", inputs, PROMPT, BroadcasterReplies, produce)
+    except CacheMiss:
+        # Preserve replay's strict cache-only contract.
+        raise
+    except Exception:
+        # Replies are optional. Failure must not discard already-approved copy.
+        return AgentResult(payload=BroadcasterOut(posts=posts, replies=[], reply_status="unavailable"), status="done")
+    answers = {reply.question_id: reply for reply in result.payload.replies}
+    replies = [FeedPost(language=q.language, text=answers[q.id].text, in_reply_to=q.id)
+               for q in inputs.questions]
+    return AgentResult(payload=BroadcasterOut(posts=posts, replies=replies,
+        reply_status="done" if inputs.questions else "not_requested"), status=result.status)
