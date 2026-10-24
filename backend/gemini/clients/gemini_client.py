@@ -1,4 +1,5 @@
 """Gemini client (async). All Gemini agents go through these helpers."""
+import asyncio
 import logging
 import re
 
@@ -72,14 +73,20 @@ async def _generate(model_name: str, contents, cfg):
     chain = [m for m in [model_name] + config.GEMINI_FALLBACK_MODELS if m not in _exhausted]
     chain = list(dict.fromkeys(chain)) or [model_name]
     for i, m in enumerate(chain):
-        try:
-            return await client().aio.models.generate_content(model=m, contents=contents, config=cfg)
-        except errors.APIError as e:
-            if e.code not in (429, 500, 503) or i == len(chain) - 1:
-                raise
-            if "PerDay" in str(e):
-                _exhausted.add(m)
-            log.warning("%s returned %s, trying %s", m, e.code, chain[i + 1])
+        for attempt in range(2):
+            try:
+                return await client().aio.models.generate_content(model=m, contents=contents, config=cfg)
+            except errors.APIError as e:
+                if e.code in (500, 502, 503, 504) and attempt == 0:
+                    log.warning("%s returned %s, retrying once", m, e.code)  # often a brief blip
+                    await asyncio.sleep(1)
+                    continue
+                if e.code not in (404, 429, 500, 502, 503, 504) or i == len(chain) - 1:
+                    raise
+                if "PerDay" in str(e):
+                    _exhausted.add(m)
+                log.warning("%s returned %s, trying %s", m, e.code, chain[i + 1])
+                break
 
 
 def _parts(prompt: str, media: bytes | None, mime: str | None):

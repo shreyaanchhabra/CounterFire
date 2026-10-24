@@ -20,6 +20,6 @@ Keep this instruction in all seven webhook routines, followed by their role inst
 
 ## Teammate boundary
 
-The desk accepts trusted normalized evidence JSON, not a live Gemini call. Import a packet with verdict and verified_facts; optional incident_id must match the scenario. Evidence freezes after approval. Live mode starts without fixture evidence. Voiskey supplies normalized intervention JSON to the editor; the user still reviews, proposes and approves the exact content hash before the simulated correction is delivered.
+The desk runs the merged Gemini image debate or accepts normalized evidence JSON through its advanced importer. Import a packet with verdict and verified_facts; optional incident_id must match the scenario. Evidence freezes after approval. Live mode starts without fixture evidence. Voiskey desktop dictation or typed notes feed the merged Gemini editor; normalized intervention JSON remains supported; the user still reviews, proposes and approves the exact content hash before the simulated correction is delivered.
 
 The task receiver checks capabilities, expiry, episode/round/group/hash, output schema, idempotence and supersession. The environment separately validates persona ownership, message provenance, action constraints and the six-community barrier. Authenticated acceptance is distinct from webhook HTTP 200.

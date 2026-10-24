@@ -168,16 +168,17 @@ class EpisodeManager:
                 comparisons=[{'branch_id':v['branch_id'],'round':v['round'],'mean_belief':v['belief'],'label':'Illustrative simulated outcome'} for v in branches]
             status=b['status']
             ev=e['evidence'] or {}
+            active=({p['task_type'] for p in e['pending_jobs']} if status=='running' else set())  # native Bot jobs in flight
             gem=ev.get('source','').startswith('gemini')
             ev_wait='Awaiting Gemini verification'
-            pipeline=[{'agent':'scout','model':'grok','status':'done' if e['scout'] else 'waiting','summary':e['scout']['summary'] if e['scout'] else 'Waiting for incident clustering'},
+            pipeline=[{'agent':'scout','model':'grok','status':'running' if 'scout' in active else 'done' if e['scout'] else 'waiting','summary':e['scout']['summary'] if e['scout'] else 'Waiting for incident clustering'},
                 {'agent':'prosecutor','model':'gemini','status':'done' if gem else 'waiting','summary':f"{len(ev.get('findings',[]))} red flags in image" if gem else ev_wait},
                 {'agent':'defender','model':'gemini','status':'done' if gem else 'waiting','summary':f"{len(ev.get('defender',[]))} supporting points" if gem else ev_wait},
                 {'agent':'judge','model':'gemini','status':'done' if ev else 'waiting','summary':(f"{ev.get('verdict')} · {ev.get('confidence')}% confident" if gem else f"{ev.get('verdict','Imported evidence')} · {ev.get('source','imported')}") if ev else ev_wait},
-                {'agent':'drafter','model':'grok','status':'done' if e['drafts'] else 'waiting','summary':'Three bilingual corrections' if e['drafts'] else 'Needs evidence and drafting'},
-                {'agent':'society','model':'grok','status':'running' if status=='running' else 'done' if b['sim'].round else 'waiting','summary':f'Six communities · round {b["sim"].round}'},
+                {'agent':'drafter','model':'grok','status':'running' if 'draft' in active else 'done' if e['drafts'] else 'waiting','summary':'Three bilingual corrections' if e['drafts'] else 'Needs evidence and drafting'},
+                {'agent':'society','model':'grok','status':'running' if 'community' in active else 'done' if b['sim'].round else 'waiting','summary':f'Six communities · round {b["sim"].round}'},
                 {'agent':'editor','model':'voiskey','status':'ready','summary':'Voiskey dictation or manual edit'},
-                {'agent':'broadcaster','model':'grok','status':'done' if b['approval'] else 'waiting','summary':'Approved in-app correction' if b['approval'] else 'Waiting for exact-copy approval'}]
+                {'agent':'broadcaster','model':'grok','status':'running' if 'broadcast' in active else 'done' if b['approval'] else 'waiting','summary':'Approved in-app correction' if b['approval'] else 'Waiting for exact-copy approval'}]
             view.update(id=e['id'],mode=e['mode'],status=status,version=e['version'],error=e['error'],
                 pipeline=pipeline,drafts=copy.deepcopy(e['drafts']),evidence=copy.deepcopy(e['evidence']),
                 pending_intervention=copy.deepcopy(b['pending']),approval=copy.deepcopy(b['approval']),branches=branches,
