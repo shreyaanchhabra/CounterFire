@@ -1,0 +1,585 @@
+<title>Firebreak Response Desk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Archivo:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: emergency ops console. Feed | live map | evidence, then correction lab + voice editor below. Single dark theme by choice. */
+:root{
+  --bg:#12100e; --panel:#1b1815; --panel2:#24201b; --line:#352e27; --fg:#ede5d9; --muted:#9c9184; --faint:#5e554b;
+  --ember:#ff6b2c; --ember-dim:#9c4420; --flame:#ffc061; --water:#5cc8ff; --water-dim:#2b6a8f; --ok:#86d494; --warn:#f2c14e;
+  --display:"Big Shoulders Display", "Arial Narrow", Impact, sans-serif;
+  --body:"Archivo", "Helvetica Neue", Arial, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px;line-height:1.45;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:14px 40px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--water);outline-offset:2px}
+.wrap{max-width:1440px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 24px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.brand h1{font-family:var(--display);font-weight:800;font-size:44px;line-height:.9;letter-spacing:.02em;margin:0;text-transform:uppercase}
+.brand h1 span{color:var(--ember)}
+.brand p{margin:0;color:var(--muted);font-size:13px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-family:var(--mono);font-size:12px}
+.chip{border:1px solid var(--line);border-radius:4px;padding:4px 8px;color:var(--muted);white-space:nowrap}
+.chip.red{border-color:var(--ember-dim);color:var(--ember);background:color-mix(in srgb,var(--ember) 10%,transparent)}
+.clock{font-family:var(--mono);font-size:13px;color:var(--fg);font-variant-numeric:tabular-nums}
+.clock b{color:var(--flame);font-weight:500}
+
+/* pipeline */
+.pipe-scroll{overflow-x:auto;scrollbar-width:thin}
+.pipe{display:flex;gap:6px;align-items:stretch;min-width:max-content}
+.agent{display:flex;flex-direction:column;gap:2px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;background:var(--panel);min-width:150px}
+.agent .row{display:flex;align-items:center;gap:7px;font-weight:600;font-size:13px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok);flex:none}
+.dot.wait{background:var(--warn);animation:pulse 1.4s infinite}
+.dot.live{background:var(--water);box-shadow:0 0 8px var(--water)}
+@keyframes pulse{50%{opacity:.35}}
+.model{margin-left:auto;font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;padding:1px 5px;border-radius:3px;border:1px solid var(--line);color:var(--muted)}
+.model.grok{color:#e8e1d6}
+.model.gemini{color:#9fc3ff;border-color:#2e4466}
+.model.voiskey{color:#d6a8ff;border-color:#4a3466}
+.agent small{color:var(--muted);font-size:12px;font-family:var(--mono)}
+.arrow{align-self:center;color:var(--faint);font-family:var(--mono)}
+
+/* grid */
+.grid{display:grid;gap:12px;grid-template-columns:minmax(250px,290px) minmax(0,1fr) minmax(300px,360px);grid-template-areas:"feed map ev" "lab lab ed"}
+.grid-bottom{display:contents}
+.p{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.feed{grid-area:feed}.mapp{grid-area:map}.ev{grid-area:ev}.lab{grid-area:lab}.ed{grid-area:ed}
+.ph{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.ph h2{margin:0;font-family:var(--display);font-weight:600;font-size:20px;letter-spacing:.04em;text-transform:uppercase}
+.label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+
+/* feed */
+.incident{border:1px solid var(--ember-dim);border-radius:6px;padding:10px;background:color-mix(in srgb,var(--ember) 7%,var(--panel))}
+.incident .id{font-family:var(--mono);font-size:11px;color:var(--ember)}
+.incident h3{margin:3px 0 8px;font-size:15px;line-height:1.3}
+.vel{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
+.vel .num{font-family:var(--display);font-weight:800;font-size:34px;line-height:.9;font-variant-numeric:tabular-nums}
+.vel .num small{font-family:var(--mono);font-size:11px;font-weight:400;color:var(--muted);margin-left:4px}
+#spark{width:120px;height:34px;display:block}
+.posts{display:flex;flex-direction:column;gap:8px;max-height:520px;overflow-y:auto;padding-right:2px}
+.post{border:1px solid var(--line);border-radius:6px;padding:9px 10px;background:var(--panel2);display:flex;flex-direction:column;gap:5px;animation:in .35s ease}
+@keyframes in{from{opacity:.2;transform:translateY(-4px)}}
+.post .who{display:flex;justify-content:space-between;gap:6px;font-size:12px}
+.post .who b{font-weight:600}
+.post .who span{color:var(--muted);font-family:var(--mono);font-size:11px}
+.post p{margin:0;font-size:13px}
+.post .stats{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.post.fire{border-left:3px solid var(--ember)}
+.post.fix{border-left:3px solid var(--water);background:color-mix(in srgb,var(--water) 7%,var(--panel2))}
+.thumb{height:46px;border-radius:4px;background:linear-gradient(170deg,#2a0f08,#8a2a10 55%,#e2622a);position:relative;overflow:hidden}
+.thumb::after{content:"";position:absolute;inset:auto 0 0;height:40%;background:linear-gradient(90deg,#ff8a3d 0 10%,transparent 10% 20%,#ffd166 20% 26%,transparent 26% 60%,#ff8a3d 60% 75%,transparent 75%);filter:blur(2px)}
+.empty{color:var(--faint);font-size:12px;font-family:var(--mono)}
+
+/* map */
+.legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--muted);font-family:var(--mono)}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.stat{border-top:2px solid var(--line);padding-top:6px}
+.stat .v{font-family:var(--display);font-weight:800;font-size:32px;line-height:1;font-variant-numeric:tabular-nums}
+.stat.f{border-color:var(--ember)}.stat.f .v{color:var(--ember)}
+.stat.w{border-color:var(--water)}.stat.w .v{color:var(--water)}
+.mapbox{position:relative;width:100%;aspect-ratio:16/10;max-width:100%;border-radius:6px;background:radial-gradient(ellipse at 50% 50%,#1d1916,#0f0d0b 75%);border:1px solid var(--line);overflow:hidden}
+#map{position:absolute;inset:0;width:100%;height:100%;display:block}
+.callout{position:absolute;right:12px;bottom:12px;max-width:290px;background:color-mix(in srgb,var(--panel) 92%,transparent);border:1px solid var(--water-dim);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.callout p{margin:0;font-size:13px}
+.callout b{color:var(--water)}
+.transport{display:flex;align-items:center;gap:10px}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:6px;padding:7px 12px;font-size:13px;font-weight:600;white-space:nowrap}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--water);border-color:var(--water);color:#06202e}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.sm{padding:4px 9px;font-size:12px}
+.btn.icon{width:36px;height:34px;padding:0;display:grid;place-items:center}
+input[type=range]{flex:1;min-width:0;accent-color:var(--flame)}
+#whatif{accent-color:var(--water)}
+.tlabel{font-family:var(--mono);font-size:12px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;min-width:56px;text-align:right}
+.whatif{border-top:1px solid var(--line);padding-top:12px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:14px;align-items:start}
+.cf{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px}
+.cf div{border:1px solid var(--line);border-radius:6px;padding:7px 8px;background:var(--panel2)}
+.cf div.me{border-color:var(--water-dim)}
+.cf .k{font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.cf .n{font-family:var(--display);font-weight:800;font-size:26px;line-height:1.05;font-variant-numeric:tabular-nums}
+.cf small{display:block;color:var(--muted);font-size:11px}
+#chart{width:100%;height:120px;display:block}
+.hint{margin:0;color:var(--muted);font-size:12px}
+
+/* evidence */
+.photo{position:relative;border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.photo svg{display:block;width:100%;height:auto}
+.finds{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.finds li{display:grid;grid-template-columns:20px minmax(0,1fr);gap:8px;font-size:13px}
+.tag{width:20px;height:20px;border-radius:4px;background:var(--water);color:#06202e;font-family:var(--mono);font-size:11px;font-weight:500;display:grid;place-items:center}
+.debate{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.side{border:1px solid var(--line);border-radius:6px;padding:9px;background:var(--panel2);display:flex;flex-direction:column;gap:6px}
+.side h4{margin:0;font-size:12px;font-weight:600;display:flex;justify-content:space-between;gap:6px}
+.side ul{margin:0;padding-left:16px;font-size:12px;color:var(--fg);display:flex;flex-direction:column;gap:4px}
+.side.pro{border-top:2px solid var(--ember)}
+.side.def{border-top:2px solid var(--muted)}
+.verdict{border:1px solid var(--line);border-radius:6px;padding:11px;display:flex;flex-direction:column;gap:9px;background:linear-gradient(180deg,color-mix(in srgb,var(--ember) 9%,var(--panel2)),var(--panel2))}
+.vtop{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.vword{font-family:var(--display);font-weight:800;font-size:38px;line-height:.9;color:var(--ember);letter-spacing:.03em}
+.conf{flex:1;max-width:150px}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ember)}
+.miss{display:flex;flex-direction:column;gap:6px}
+.miss div{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px}
+.miss span::before{content:"";display:inline-block;width:9px;height:9px;border:1px dashed var(--warn);border-radius:2px;margin-right:7px;vertical-align:-1px}
+
+/* lab */
+.framings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.fr{border:1px solid var(--line);border-radius:8px;padding:12px;background:var(--panel2);display:flex;flex-direction:column;gap:9px;text-align:left}
+.fr[aria-pressed=true]{border-color:var(--water);box-shadow:inset 0 0 0 1px var(--water)}
+.fr .fh{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.fr .fh b{font-size:13px}
+.pick{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:#06202e;background:var(--water);border-radius:3px;padding:2px 6px}
+.fr q{font-size:13px;color:var(--fg);quotes:none;line-height:1.4}
+.heat{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:3px}
+.heat span{height:22px;border-radius:3px;display:grid;place-items:center;font-family:var(--mono);font-size:10px;color:#06202e;font-variant-numeric:tabular-nums}
+.heatkey{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:3px;font-family:var(--mono);font-size:9px;color:var(--muted);text-align:center;line-height:1.2}
+.fr .score{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;color:var(--muted)}
+.fr .score strong{font-family:var(--display);font-size:24px;color:var(--fg);font-weight:800}
+
+/* editor */
+.mic{display:flex;align-items:center;gap:12px}
+.micbtn{width:52px;height:52px;border-radius:50%;border:1px solid #4a3466;background:radial-gradient(circle,#3a2752,#221a2e);display:grid;place-items:center;flex:none}
+.micbtn svg{width:22px;height:22px;fill:#d6a8ff}
+.micbtn.rec{animation:ring 1s infinite}
+@keyframes ring{0%{box-shadow:0 0 0 0 rgba(214,168,255,.5)}100%{box-shadow:0 0 0 14px rgba(214,168,255,0)}}
+.wave{display:flex;align-items:center;gap:2px;height:28px;flex:1}
+.wave i{flex:1;max-width:4px;background:#6c4d91;border-radius:2px;height:20%}
+.raw{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 10px;min-height:62px}
+.raw .um{color:var(--faint);text-decoration:line-through}
+.raw .cmd{color:#d6a8ff}
+.outs{display:flex;flex-direction:column;gap:8px}
+.out{border:1px solid var(--line);border-radius:6px;padding:9px 10px;background:var(--panel2);display:flex;flex-direction:column;gap:5px}
+.out .oh{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.out p{margin:0;font-size:13px}
+.langs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.lang{border:1px solid var(--line);background:transparent;border-radius:20px;padding:4px 11px;font-size:12px}
+.lang[aria-pressed=true]{border-color:var(--water);color:var(--water);background:color-mix(in srgb,var(--water) 10%,transparent)}
+.lang[disabled]{cursor:default;opacity:.85}
+.approve{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.approve .note{font-size:12px;color:var(--muted)}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom, 0px));background:var(--panel2);border:1px solid var(--water-dim);color:var(--fg);padding:9px 14px;border-radius:6px;font-size:13px;max-width:calc(100% - 32px);box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:20}
+
+@media (max-width:1180px){
+  .grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-template-areas:"map map" "ev feed" "lab lab" "ed ed"}
+}
+@media (max-width:760px){
+  .grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"map" "ev" "feed" "lab" "ed"}
+  .mapbox{aspect-ratio:1/1}
+  .whatif{grid-template-columns:minmax(0,1fr)}
+  .framings{grid-template-columns:minmax(0,1fr)}
+  .brand h1{font-size:36px}
+  .stat .v{font-size:26px}
+  .callout{left:10px;right:10px;max-width:none;bottom:10px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Fire<span>break</span></h1>
+      <p>Misinformation response desk for county emergency comms</p>
+    </div>
+    <div class="meta">
+      <span class="chip red">Red Flag Warning · Santa Ana winds</span>
+      <span class="chip">Demo scenario · fictional incident</span>
+      <span class="clock" id="clock">T+<b>24</b> min · 7:42 PM</span>
+    </div>
+  </header>
+
+  <div class="pipe-scroll" aria-label="Agent pipeline">
+    <div class="pipe">
+      <div class="agent"><div class="row"><span class="dot"></span>Scout<span class="model grok">Grok</span></div><small>342 posts → 1 incident</small></div>
+      <span class="arrow">›</span>
+      <div class="agent"><div class="row"><span class="dot"></span>Prosecutor<span class="model gemini">Gemini</span></div><small>3 red flags in image</small></div>
+      <span class="arrow">›</span>
+      <div class="agent"><div class="row"><span class="dot"></span>Defender<span class="model gemini">Gemini</span></div><small>2 supporting points</small></div>
+      <span class="arrow">›</span>
+      <div class="agent"><div class="row"><span class="dot"></span>Judge<span class="model gemini">Gemini</span></div><small>False · 91% confident</small></div>
+      <span class="arrow">›</span>
+      <div class="agent"><div class="row"><span class="dot"></span>Society Sim<span class="model grok">Grok</span></div><small>20 personas × 3 framings</small></div>
+      <span class="arrow">›</span>
+      <div class="agent"><div class="row"><span class="dot"></span>Editor<span class="model voiskey">Voiskey</span></div><small id="edSmall">2 posts from voice</small></div>
+      <span class="arrow">›</span>
+      <div class="agent"><div class="row"><span class="dot wait" id="bcDot"></span>Broadcaster<span class="model grok">Grok</span></div><small id="bcSmall">Waiting for approval</small></div>
+    </div>
+  </div>
+
+  <main class="grid">
+    <!-- FEED -->
+    <section class="p feed" aria-labelledby="feedH">
+      <div class="ph"><h2 id="feedH">Scout feed</h2><span class="label">Live</span></div>
+      <div class="incident">
+        <div class="id">INCIDENT SD-1024 · cluster of 342 posts</div>
+        <h3>"The fire jumped I-15 at Rancho Bernardo. Poway, get out now."</h3>
+        <div class="vel">
+          <div><div class="label">Velocity</div><div class="num" id="vel">0<small>posts/min</small></div></div>
+          <canvas id="spark" aria-label="Post velocity over time"></canvas>
+        </div>
+      </div>
+      <div class="posts" id="posts" aria-live="polite"></div>
+    </section>
+
+    <!-- MAP -->
+    <section class="p mapp" aria-labelledby="mapH">
+      <div class="ph">
+        <h2 id="mapH">Spread map</h2>
+        <div class="legend">
+          <span><i style="background:var(--faint)"></i>Hasn't seen it</span>
+          <span><i style="background:var(--ember);box-shadow:0 0 6px var(--ember)"></i>Believes and sharing</span>
+          <span><i style="background:var(--ember-dim)"></i>Believes</span>
+          <span><i style="background:var(--water);box-shadow:0 0 6px var(--water)"></i>Sharing correction</span>
+          <span><i style="background:var(--water-dim)"></i>Corrected</span>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat f"><div class="label">Believing now</div><div class="v" id="sBel">0%</div></div>
+        <div class="stat w"><div class="label">Corrected</div><div class="v" id="sCor">0%</div></div>
+        <div class="stat"><div class="label">Est. residents misled</div><div class="v" id="sRes">0</div></div>
+      </div>
+      <div class="mapbox">
+        <canvas id="map" aria-label="Network of 240 simulated accounts in six communities showing the rumor and correction spreading"></canvas>
+        <div class="callout" id="callout" hidden>
+          <p><b>Judge: false, 91% confident.</b> Correction drafted from your voice note. The rumor is moving into the Escondido parents group next.</p>
+          <button class="btn primary" id="approve2">Approve and broadcast</button>
+        </div>
+      </div>
+      <div class="transport">
+        <button class="btn icon" id="play" aria-label="Pause">❚❚</button>
+        <input type="range" id="scrub" min="0" max="90" step="0.1" value="12" aria-label="Timeline">
+        <span class="tlabel" id="tLabel">T+12</span>
+      </div>
+      <div class="whatif">
+        <div>
+          <div class="label">What if we corrected at</div>
+          <div class="transport" style="margin-top:6px">
+            <input type="range" id="whatif" min="4" max="70" step="1" value="24" aria-label="Correction time">
+            <span class="tlabel" id="wLabel">T+24</span>
+          </div>
+          <div class="cf">
+            <div><div class="k">T+10</div><div class="n" id="cf10">–</div><small>still believe</small></div>
+            <div class="me"><div class="k" id="cfMeK">T+24</div><div class="n" id="cfMe">–</div><small>still believe</small></div>
+            <div><div class="k">Never</div><div class="n" id="cfNo">–</div><small>still believe</small></div>
+          </div>
+        </div>
+        <div>
+          <div class="label">Network over time · rumor vs correction</div>
+          <canvas id="chart" aria-label="Share of network believing and corrected over 90 minutes"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- EVIDENCE -->
+    <section class="p ev" aria-labelledby="evH">
+      <div class="ph"><h2 id="evH">Evidence board</h2><span class="label">Gemini vision</span></div>
+      <div class="photo">
+        <svg viewBox="0 0 360 220" role="img" aria-label="Viral photo of fire beside a freeway with three flagged regions">
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22100a"/><stop offset=".5" stop-color="#7a2610"/><stop offset=".62" stop-color="#d9592a"/><stop offset="1" stop-color="#3a1a10"/></linearGradient>
+          </defs>
+          <rect width="360" height="220" fill="url(#sky)"/>
+          <ellipse cx="250" cy="50" rx="110" ry="40" fill="#3a2621" opacity=".75"/>
+          <ellipse cx="300" cy="80" rx="80" ry="28" fill="#4a2c22" opacity=".6"/>
+          <path d="M0 130 L50 112 L105 122 L160 104 L220 118 L290 100 L360 116 L360 150 L0 150Z" fill="#1c0d08"/>
+          <g fill="#ff8a3d"><path d="M235 120 l8 -30 l7 22 l6 -34 l8 40 l7 -18 l6 20 z"/><path d="M285 118 l7 -24 l6 16 l8 -36 l7 30 l6 -12 l5 26 z"/></g>
+          <g fill="#ffd166"><path d="M246 120 l5 -16 l5 14 l5 -20 l5 22z"/><path d="M296 118 l5 -14 l6 12 l5 -18 l4 20z"/></g>
+          <path d="M120 220 L172 132 L188 132 L300 220Z" fill="#2a221d"/>
+          <g stroke="#cdbb9f" stroke-width="2" stroke-dasharray="7 9"><line x1="200" y1="220" x2="180" y2="134"/></g>
+          <line x1="215" y1="132" x2="215" y2="108" stroke="#9a9a9a" stroke-width="2"/><line x1="287" y1="132" x2="287" y2="108" stroke="#9a9a9a" stroke-width="2"/>
+          <rect x="210" y="74" width="82" height="34" rx="2" fill="#1f6b3a" stroke="#e8e8e8" stroke-width="1.2"/>
+          <text x="251" y="90" fill="#fff" font-size="11" font-family="Arial, sans-serif" font-weight="700" text-anchor="middle">101 NORTH</text>
+          <text x="251" y="102" fill="#fff" font-size="7.5" font-family="Arial, sans-serif" text-anchor="middle">Scottsdale Rd · 1 mile</text>
+          <rect x="128" y="178" width="34" height="14" rx="3" fill="#0e0e10"/><rect x="132" y="172" width="22" height="9" rx="2" fill="#1a1a1e"/>
+          <ellipse cx="128" cy="194" rx="20" ry="3.5" fill="#000" opacity=".6"/>
+          <g fill="none" stroke="#5cc8ff" stroke-width="1.6" stroke-dasharray="5 3">
+            <rect x="204" y="68" width="94" height="46" rx="3"/>
+            <rect x="100" y="166" width="68" height="34" rx="3"/>
+            <rect x="4" y="4" width="352" height="212" rx="4" stroke-opacity=".45"/>
+          </g>
+          <g font-family="IBM Plex Mono, monospace" font-size="10" font-weight="500">
+            <rect x="204" y="56" width="14" height="13" rx="2" fill="#5cc8ff"/><text x="211" y="66" text-anchor="middle" fill="#06202e">1</text>
+            <rect x="100" y="154" width="14" height="13" rx="2" fill="#5cc8ff"/><text x="107" y="164" text-anchor="middle" fill="#06202e">2</text>
+            <rect x="8" y="8" width="96" height="14" rx="2" fill="#5cc8ff"/><text x="56" y="18" text-anchor="middle" fill="#06202e">3 · match found</text>
+          </g>
+        </svg>
+      </div>
+      <ul class="finds">
+        <li><span class="tag">1</span><span>Sign reads Loop 101, Scottsdale Rd. That's Arizona, not I-15.</span></li>
+        <li><span class="tag">2</span><span>Shadows fall to the west. The post says 7:20 PM, when shadows here point east.</span></li>
+        <li><span class="tag">3</span><span>Reverse image match: earliest copy posted June 2019.</span></li>
+      </ul>
+      <div class="debate">
+        <div class="side pro"><h4>Prosecutor <span class="model gemini">Gemini</span></h4>
+          <ul><li>Recycled photo from a 2019 fire</li><li>Location markers don't match</li><li>Account is 9 days old</li></ul></div>
+        <div class="side def"><h4>Defender <span class="model gemini">Gemini</span></h4>
+          <ul><li>Smoke direction fits NE winds tonight</li><li>A real fire is active 6 mi east</li></ul></div>
+      </div>
+      <div class="verdict">
+        <div class="vtop">
+          <div><div class="label">Judge verdict</div><div class="vword">False</div></div>
+          <div class="conf"><div class="label" style="display:flex;justify-content:space-between"><span>Confidence</span><span>91%</span></div><div class="bar"><i style="width:91%"></i></div></div>
+        </div>
+        <div class="label">Missing evidence</div>
+        <div class="miss">
+          <div><span>Original file from uploader</span><button class="btn sm" data-ask="Message to @sd_firewatch_live asking for the original file">Draft ask</button></div>
+          <div><span>CAL FIRE perimeter after 7:30 PM</span><button class="btn sm" data-ask="Request to CAL FIRE PIO for the latest perimeter">Draft ask</button></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CORRECTION LAB -->
+    <section class="p lab" aria-labelledby="labH">
+      <div class="ph"><h2 id="labH">Correction lab</h2><span class="label">Society Sim · 20 Grok personas</span></div>
+      <p class="hint">Each framing was shown to every persona group. Cells show predicted drop in belief. Pick one and the map reruns.</p>
+      <div class="heatkey" aria-hidden="true" id="heatkeyTpl" hidden></div>
+      <div class="framings" id="framings"></div>
+    </section>
+
+    <!-- EDITOR -->
+    <section class="p ed" aria-labelledby="edH">
+      <div class="ph"><h2 id="edH">Editor</h2><span class="model voiskey">Voiskey</span></div>
+      <div class="mic">
+        <button class="micbtn" id="mic" aria-label="Replay voice dictation"><svg viewBox="0 0 24 24"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.9V21h2v-3.1a7 7 0 0 0 6-6.9z"/></svg></button>
+        <div class="wave" id="wave" aria-hidden="true"></div>
+      </div>
+      <div class="raw" id="raw"></div>
+      <div class="langs"><span class="label">Languages</span>
+        <button class="lang" aria-pressed="true" disabled>English</button>
+        <button class="lang" id="esBtn" aria-pressed="true">Español</button>
+      </div>
+      <div class="outs">
+        <div class="out"><div class="oh"><span>EN · X / Nextdoor</span><span id="enLen"></span></div><p id="enOut"></p></div>
+        <div class="out" id="esCard"><div class="oh"><span>ES · X / WhatsApp groups</span><span id="esLen"></span></div><p id="esOut"></p></div>
+      </div>
+      <div class="approve">
+        <button class="btn primary" id="approve">Approve and broadcast</button>
+        <span class="note" id="apNote">Nothing posts without your approval.</span>
+      </div>
+    </section>
+  </main>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const css=getComputedStyle(document.documentElement);
+const col=n=>css.getPropertyValue(n).trim();
+const K={ember:col('--ember'),emberDim:col('--ember-dim'),flame:col('--flame'),water:col('--water'),waterDim:col('--water-dim'),faint:col('--faint'),muted:col('--muted'),line:col('--line'),fg:col('--fg')};
+
+/* ---------- simulation ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function hr(a,b,c,d){let x=(a*73856093)^(b*19349663)^(c*83492791)^(d*2654435761);x=Math.imul(x^(x>>>16),0x45d9f3b);x=Math.imul(x^(x>>>16),0x45d9f3b);x^=x>>>16;return(x>>>0)/4294967296}
+const C=6,PER=40,N=C*PER,T=90,START=80;
+const GROUPS=["Poway residents","Escondido parents (ES)","Local influencers","Retirees on Facebook","Reporters","Skeptics"];
+const SHORT=["Poway","Esc. ES","Influ.","Retirees","Press","Skeptic"];
+const pFire=[.05,.05,.07,.05,.02,.012];
+const FR={
+  A:{name:"Fact check",text:"FALSE: This photo is from a 2019 fire in Arizona. The fire has not crossed I-15.",p:[.10,.08,.12,.07,.30,.25]},
+  B:{name:"Action first",text:"Poway: no new evacuation orders. The fire has NOT crossed I-15. Stay off the roads so crews can move. The viral photo is from 2019.",p:[.24,.20,.16,.18,.28,.20]},
+  C:{name:"Neighbor voice",text:"Rancho Bernardo resident on a livestream right now: I-15 is clear, crews are on the ridge. That viral photo is from 2019.",p:[.18,.14,.22,.16,.18,.12]}
+};
+const g=(()=>{const r=mulberry32(7);const cl=[],adj=[];for(let i=0;i<N;i++){cl.push(Math.floor(i/PER));adj.push(new Set())}
+  const link=(a,b)=>{if(a!==b){adj[a].add(b);adj[b].add(a)}};
+  for(let i=0;i<N;i++){const c=cl[i];for(let k=0;k<3;k++)link(i,c*PER+Math.floor(r()*PER));
+    if(r()<(c===2?.55:.07))link(i,Math.floor(r()*N)); if(c===2&&r()<.5)link(i,Math.floor(r()*N));}
+  const A=adj.map(s=>[...s]);const edges=[];A.forEach((l,i)=>l.forEach(j=>{if(j>i)edges.push([i,j])}));
+  return{cl,adj:A,edges}})();
+
+const cache=new Map();
+function run(deploy,fr,es){
+  const key=deploy+"|"+fr+"|"+es;if(cache.has(key))return cache.get(key);
+  const s=new Uint8Array(N),age=new Uint8Array(N);const frames=[],ev=[];for(let t=0;t<=T;t++)ev.push([]);
+  s[START]=1;ev[0].push([START,-1,1]);frames.push(s.slice());
+  const pc=FR[fr].p;
+  for(let t=1;t<=T;t++){
+    if(deploy!=null&&t===deploy){
+      const cnt=new Array(C).fill(0);for(let i=0;i<N;i++)if(s[i]===1||s[i]===2)cnt[g.cl[i]]++;
+      const tgt=cnt.indexOf(Math.max(...cnt));
+      const seeds=[0,1,2,3].map(k=>4*PER+k*7).concat([0,1,2,3].map(k=>tgt*PER+k*9+3));
+      for(const i of seeds){s[i]=3;age[i]=0;ev[t].push([i,-1,3])}
+    }
+    const n=s.slice();
+    for(let i=0;i<N;i++){
+      if(s[i]===1){for(const j of g.adj[i])if(s[j]===0&&n[j]===0&&hr(i,j,t,1)<pFire[g.cl[j]]){n[j]=1;age[j]=0;ev[t].push([j,i,1])}}
+      if(s[i]===3){for(const j of g.adj[i]){if(n[j]===3)continue;let p=pc[g.cl[j]];if(g.cl[j]===1&&!es)p*=.25;
+        if(s[j]===0&&hr(i,j,t,2)<p){n[j]=3;age[j]=0;ev[t].push([j,i,3])}
+        else if((s[j]===1||s[j]===2)&&hr(i,j,t,3)<p*.2){n[j]=3;age[j]=0;ev[t].push([j,i,3])}}}
+    }
+    for(let i=0;i<N;i++){if(n[i]===1||n[i]===3){age[i]++;if(age[i]>12)n[i]++}}
+    s.set(n);frames.push(s.slice());
+  }
+  const bel=frames.map(f=>{let b=0,c=0;for(const x of f){if(x===1||x===2)b++;else if(x>=3)c++}return[b/N,c/N]});
+  const out={frames,ev,bel};cache.set(key,out);return out;
+}
+
+/* ---------- layout ---------- */
+const centers=[[.22,.27],[.2,.74],[.5,.5],[.79,.26],[.8,.74],[.5,.12]];
+const pos=(()=>{const r=mulberry32(3);const gauss=()=>{let u=0,v=0;while(!u)u=r();while(!v)v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)};
+  return g.cl.map((c,i)=>{const[x,y]=centers[c];const sx=c===5?.09:.065,sy=c===5?.035:.065;return[x+gauss()*sx,y+gauss()*sy]})})();
+
+/* ---------- state ---------- */
+const S={t:12,playing:true,deploy:null,fr:"B",es:true,autoPause:true};
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+if(reduce){S.t=24;S.playing=false}
+let cur=run(null,S.fr,S.es);
+function refresh(){cur=run(S.deploy,S.fr,S.es);lastInt=-1;updateCF();drawChart()}
+
+/* ---------- map draw ---------- */
+const mc=$('map'),mx=mc.getContext('2d');let MW=0,MH=0;
+function fit(c){const r=c.getBoundingClientRect(),d=Math.min(devicePixelRatio||1,2);c.width=Math.max(1,r.width*d);c.height=Math.max(1,r.height*d);const ctx=c.getContext('2d');ctx.setTransform(d,0,0,d,0,0);return[r.width,r.height]}
+const P=(i)=>{const pad=MW<500?18:34;return[pad+pos[i][0]*(MW-2*pad),pad+8+pos[i][1]*(MH-2*pad-8)]};
+function drawMap(now){
+  const t=S.t,f=Math.min(T,Math.floor(t)),st=cur.frames[f];
+  mx.clearRect(0,0,MW,MH);
+  mx.lineWidth=.6;mx.strokeStyle="rgba(237,229,217,.06)";mx.beginPath();
+  for(const[a,b]of g.edges){const[x1,y1]=P(a),[x2,y2]=P(b);mx.moveTo(x1,y1);mx.lineTo(x2,y2)}mx.stroke();
+  // sparks
+  for(let k=f;k<=Math.min(T,f+1);k++){for(const[j,i,kind]of cur.ev[k]){if(i<0)continue;const p=Math.max(0,Math.min(1,t-(k-1)));if(p<=0||p>=1.0001)continue;
+    const[x1,y1]=P(i),[x2,y2]=P(j);const xe=x1+(x2-x1)*p,ye=y1+(y2-y1)*p;
+    const gr=mx.createLinearGradient(x1,y1,xe,ye);const c=kind===1?K.ember:K.water;gr.addColorStop(0,"rgba(0,0,0,0)");gr.addColorStop(1,c);
+    mx.strokeStyle=gr;mx.lineWidth=1.6;mx.beginPath();mx.moveTo(x1,y1);mx.lineTo(xe,ye);mx.stroke()}}
+  // labels
+  mx.font="500 11px 'IBM Plex Mono', monospace";mx.textAlign="center";
+  const counts=new Array(C).fill(0);for(let i=0;i<N;i++)if(st[i]===1||st[i]===2)counts[g.cl[i]]++;
+  centers.forEach(([cx,cy],c)=>{const pad=MW<500?18:34;let x=pad+cx*(MW-2*pad),y=pad+8+cy*(MH-2*pad-8);
+    const dy=c===5?-34:(cy<.5?-58:58);if(c===2){y-=60}else y+=dy;if(c===5)y+=4;
+    const hot=counts[c]/PER>.5;mx.fillStyle=hot?K.ember:K.muted;mx.fillText((MW<500?SHORT[c]:GROUPS[c]).toUpperCase(),x,Math.max(12,Math.min(MH-6,y)));});
+  // nodes
+  for(let i=0;i<N;i++){const s=st[i];const[x,y]=P(i);let r=2.4,c=K.faint;
+    if(s===1){c=K.ember;r=3.4+Math.sin(now/120+i)*.7}else if(s===2){c=K.emberDim;r=2.9}else if(s===3){c=K.water;r=3.4+Math.sin(now/150+i)*.5}else if(s===4){c=K.waterDim;r=2.9}
+    if(s===1||s===3){mx.fillStyle=s===1?"rgba(255,107,44,.16)":"rgba(92,200,255,.16)";mx.beginPath();mx.arc(x,y,r*3.2,0,7);mx.fill()}
+    mx.fillStyle=c;mx.beginPath();mx.arc(x,y,r,0,7);mx.fill()}
+  // origin marker
+  const[ox,oy]=P(START);mx.strokeStyle=K.flame;mx.lineWidth=1;mx.beginPath();mx.arc(ox,oy,8,0,7);mx.stroke();
+}
+
+/* ---------- chart + spark ---------- */
+const cc=$('chart'),cx=cc.getContext('2d');let CW=0,CH=0;
+function drawChart(){
+  if(!CW)return;cx.clearRect(0,0,CW,CH);const L=26,R=6,Tp=6,B=16,w=CW-L-R,h=CH-Tp-B;
+  const X=t=>L+t/T*w,Y=v=>Tp+(1-v)*h;
+  cx.font="10px 'IBM Plex Mono', monospace";cx.fillStyle=K.muted;cx.textAlign="right";cx.strokeStyle="rgba(237,229,217,.07)";cx.lineWidth=1;
+  [0,.5,1].forEach(v=>{cx.beginPath();cx.moveTo(L,Y(v));cx.lineTo(L+w,Y(v));cx.stroke();cx.fillText(Math.round(v*100)+"%",L-4,Y(v)+3)});
+  cx.textAlign="center";[0,30,60,90].forEach(t=>cx.fillText("T+"+t,Math.min(X(t),L+w-12),CH-3));
+  const area=(idx,color,fill)=>{cx.beginPath();cx.moveTo(X(0),Y(0));cur.bel.forEach((b,t)=>cx.lineTo(X(t),Y(b[idx])));cx.lineTo(X(T),Y(0));cx.closePath();cx.fillStyle=fill;cx.fill();
+    cx.beginPath();cur.bel.forEach((b,t)=>t?cx.lineTo(X(t),Y(b[idx])):cx.moveTo(X(t),Y(b[idx])));cx.strokeStyle=color;cx.lineWidth=1.8;cx.stroke()};
+  area(0,K.ember,"rgba(255,107,44,.14)");area(1,K.water,"rgba(92,200,255,.12)");
+  if(S.deploy!=null){cx.setLineDash([3,3]);cx.strokeStyle=K.water;cx.beginPath();cx.moveTo(X(S.deploy),Tp);cx.lineTo(X(S.deploy),Tp+h);cx.stroke();cx.setLineDash([])}
+  cx.strokeStyle=K.fg;cx.lineWidth=1;cx.beginPath();cx.moveTo(X(S.t),Tp);cx.lineTo(X(S.t),Tp+h);cx.stroke();
+  const ft=Math.min(T,Math.floor(S.t));cx.fillStyle=K.ember;cx.beginPath();cx.arc(X(ft),Y(cur.bel[ft][0]),3,0,7);cx.fill();
+}
+const sc=$('spark'),sx=sc.getContext('2d');let SW=0,SH=0;
+function velAt(t){if(t<1)return 4;let n=0;for(const[,,k]of cur.ev[t])if(k===1)n++;return n*7+3}
+function drawSpark(){if(!SW)return;const f=Math.min(T,Math.floor(S.t));sx.clearRect(0,0,SW,SH);const vals=[];for(let t=0;t<=f;t++)vals.push(velAt(t));
+  const mxv=Math.max(30,...vals.map((v,i)=>i?(v+vals[i-1])/2:v));const X=t=>t/T*SW,Y=v=>SH-2-(v/mxv)*(SH-4);
+  sx.beginPath();vals.forEach((v,t)=>{const vv=t?(v+vals[t-1])/2:v;t?sx.lineTo(X(t),Y(vv)):sx.moveTo(X(t),Y(vv))});sx.strokeStyle=K.ember;sx.lineWidth=1.5;sx.stroke()}
+
+/* ---------- feed ---------- */
+const POSTS=[
+ {t:0,cls:"fire",who:"@sd_firewatch_live",meta:"acct 9 days old",text:"🔥 FIRE JUST JUMPED THE 15 AT RANCHO BERNARDO. Poway get out NOW, they're not telling you",img:1,stats:"14.2k reposts"},
+ {t:4,cls:"fire",who:"@kristen_rb",meta:"Rancho Bernardo",text:"my neighbor just sent me this, is this real?? packing the car",stats:"2.1k reposts"},
+ {t:9,cls:"fire",who:"@PowayParentsNet",meta:"38k members",text:"Sharing for awareness. Please evacuate if you're near the 15!!",stats:"5.6k reposts"},
+ {t:15,cls:"fire",who:"@mamas_escondido",meta:"grupo de WhatsApp",text:"¡El fuego cruzó la 15! Salgan de Poway ya, compartan con sus familias",stats:"3.9k reenvíos"},
+ {t:20,cls:"fire",who:"@northcounty_dan",meta:"influencer · 210k",text:"Insane footage. The county is way behind on this one 👀",stats:"8.8k reposts"}
+];
+const postsEl=$('posts');
+function renderFeed(){
+  const f=Math.floor(S.t);const items=[];
+  if(S.deploy!=null&&f>=S.deploy){
+    if(f>=S.deploy+5)items.push({cls:"fix",who:"@CountyComms_demo",meta:"reply thread",text:"Replying to 46 questions. Short answer: no new orders for Poway. Live map at ReadySanDiego.",stats:"auto-answered by Broadcaster"});
+    if(S.es)items.push({cls:"fix",who:"@CountyComms_demo",meta:"T+"+S.deploy+" · ES",text:$('esOut').textContent,stats:"targeted: Escondido parent groups"});
+    items.push({cls:"fix",who:"@CountyComms_demo",meta:"T+"+S.deploy+" · approved by voice",text:FR[S.fr].text,stats:"broadcast · "+FR[S.fr].name.toLowerCase()});
+  }
+  POSTS.filter(p=>p.t<=f).slice().reverse().forEach(p=>items.push(p));
+  const sig=items.map(p=>p.who+p.meta+p.text).join("|");if(sig===postsEl.dataset.sig)return;postsEl.dataset.sig=sig;
+  postsEl.innerHTML=items.map(p=>`<article class="post ${p.cls}"><div class="who"><b>${p.who}</b><span>${p.meta}</span></div>${p.img?'<div class="thumb" aria-hidden="true"></div>':''}<p>${p.text}</p><div class="stats">${p.stats}</div></article>`).join("");
+}
+
+/* ---------- framings ---------- */
+function heatColor(v){const a=Math.max(.12,Math.min(1,v));return `rgba(92,200,255,${a.toFixed(2)})`}
+function renderFramings(){
+  const wrap=$('framings');
+  wrap.innerHTML=Object.entries(FR).map(([k,f])=>{
+    const vals=f.p.map((p,c)=>c===1&&!S.es?p*.25:p);const sc=vals.map(v=>Math.round(v/.3*100));const avg=Math.round(sc.reduce((a,b)=>a+b)/sc.length);
+    return `<button class="fr" data-fr="${k}" aria-pressed="${S.fr===k}"><div class="fh"><b>${k} · ${f.name}</b>${k==="B"?'<span class="pick">Sim pick</span>':''}</div>
+    <q>${f.text}</q>
+    <div class="heat">${sc.map((s,c)=>`<span style="background:${heatColor(s/100)}" title="${GROUPS[c]}: ${s}% drop">${s}</span>`).join("")}</div>
+    <div class="heatkey">${SHORT.map(s=>`<span>${s}</span>`).join("")}</div>
+    <div class="score"><span>Avg. belief drop</span><strong>${avg}%</strong></div></button>`}).join("");
+  wrap.querySelectorAll('.fr').forEach(b=>b.onclick=()=>{S.fr=b.dataset.fr;renderFramings();refresh();toast(`Map rerun with "${FR[S.fr].name}"`)});
+}
+
+/* ---------- editor ---------- */
+const RAW=[["um",1],[" okay so ",0],["that's the old Arizona photo from like 2019",2],[", ",0],["uh",1],[" ",0],["kill it",2],[", tell Poway there's no new orders and ",0],["to stay off the roads",2],[", and ",0],["do Spanish too",2],[" for the Escondido groups",0]];
+const ES_TXT="Poway: no hay nuevas órdenes de evacuación. El fuego NO ha cruzado la I-15. Eviten las calles para que los bomberos puedan pasar. La foto viral es de 2019.";
+function renderRaw(n){let left=n==null?1e9:n,html="";for(const[s,k]of RAW){if(left<=0)break;const part=s.slice(0,left);left-=s.length;html+=k===1?`<span class="um">${part}</span>`:k===2?`<span class="cmd">${part}</span>`:part}$('raw').innerHTML=html||"&nbsp;"}
+function renderOuts(){$('enOut').textContent=FR[S.fr].text;$('enLen').textContent=FR[S.fr].text.length+"/280";$('esOut').textContent=ES_TXT;$('esLen').textContent=ES_TXT.length+"/280";$('esCard').hidden=!S.es}
+const wave=$('wave');for(let i=0;i<34;i++)wave.appendChild(document.createElement('i'));
+let dictating=false;
+function dictate(){if(dictating)return;dictating=true;$('mic').classList.add('rec');$('enOut').parentElement.style.opacity=.35;$('esCard').style.opacity=.35;
+  const total=RAW.reduce((a,[s])=>a+s.length,0);let n=0;const bars=[...wave.children];
+  const step=()=>{n+=3;renderRaw(n);bars.forEach(b=>b.style.height=(15+Math.random()*85)+"%");
+    if(n<total)setTimeout(step,reduce?0:28);else{bars.forEach(b=>b.style.height="20%");$('mic').classList.remove('rec');$('enOut').parentElement.style.opacity=1;$('esCard').style.opacity=1;dictating=false;toast("Voiskey: 2 clean posts drafted from your voice note")}};
+  step()}
+$('mic').onclick=dictate;
+$('esBtn').onclick=()=>{S.es=!S.es;$('esBtn').setAttribute('aria-pressed',S.es);renderOuts();renderFramings();refresh();toast(S.es?"Spanish post back on. Watch the Escondido group.":"Spanish post off. Watch the Escondido group burn.")};
+
+/* ---------- approve ---------- */
+function approve(){
+  if(S.deploy!=null){S.deploy=null;refresh();setApproved();toast("Broadcast pulled. Rumor runs unchecked.");return}
+  S.deploy=Math.max(2,Math.round(S.t));S.autoPause=false;$('whatif').value=S.deploy;refresh();setApproved();
+  if(!reduce){S.playing=true;setPlay()}toast(`Approved at T+${S.deploy}. Correction is live.`)}
+function setApproved(){const on=S.deploy!=null;$('approve').textContent=on?"Pull broadcast":"Approve and broadcast";$('approve').classList.toggle('primary',!on);
+  $('apNote').textContent=on?`Broadcast at T+${S.deploy} · Broadcaster answering replies`:"Nothing posts without your approval.";
+  $('bcDot').className="dot "+(on?"live":"wait");$('bcSmall').textContent=on?`Live since T+${S.deploy}`:"Waiting for approval";$('wLabel').textContent="T+"+(S.deploy??$('whatif').value);updateCF()}
+$('approve').onclick=approve;$('approve2').onclick=approve;
+$('whatif').oninput=e=>{S.deploy=+e.target.value;S.autoPause=false;refresh();setApproved()};
+
+function updateCF(){const end=d=>Math.round(run(d,S.fr,S.es).bel[T][0]*100)+"%";const me=S.deploy??+$('whatif').value;
+  $('cf10').textContent=end(10);$('cfMe').textContent=end(me);$('cfNo').textContent=end(null);$('cfMeK').textContent="T+"+me+(S.deploy==null?" (preview)":"")}
+
+/* ---------- transport ---------- */
+function setPlay(){$('play').textContent=S.playing?"❚❚":"▶";$('play').setAttribute('aria-label',S.playing?"Pause":"Play")}
+$('play').onclick=()=>{if(!S.playing&&S.t>=T)S.t=0;S.playing=!S.playing;setPlay()};
+$('scrub').oninput=e=>{S.t=+e.target.value;S.playing=false;setPlay()};
+let lastInt=-1;
+function fmtClock(t){const m=18+Math.floor(t);const h=7+Math.floor(m/60),mm=m%60;return `T+<b>${Math.floor(t)}</b> min · ${h}:${String(mm).padStart(2,"0")} PM`}
+function tickUI(){const f=Math.min(T,Math.floor(S.t));if(f===lastInt)return;lastInt=f;
+  const[b,c]=cur.bel[f];$('sBel').textContent=Math.round(b*100)+"%";$('sCor').textContent=Math.round(c*100)+"%";
+  $('sRes').textContent=(Math.round(b*N*1850/100)*100).toLocaleString();
+  $('vel').innerHTML=velAt(f)+"<small>posts/min</small>";$('clock').innerHTML=fmtClock(S.t);$('tLabel').textContent="T+"+f;
+  $('callout').hidden=!(S.deploy==null&&f>=24&&!S.playing);renderFeed();drawSpark()}
+
+let last=performance.now();
+function loop(now){const dt=now-last;last=now;
+  if(S.playing){S.t=Math.min(T,S.t+dt/230);
+    if(S.autoPause&&S.deploy==null&&S.t>=24){S.t=24;S.playing=false;S.autoPause=false;setPlay()}
+    if(S.t>=T){S.playing=false;setPlay()}
+    $('scrub').value=S.t}
+  tickUI();drawMap(now);drawChart();requestAnimationFrame(loop)}
+
+/* ---------- toast + misc ---------- */
+let tt;function toast(m){const el=$('toast');el.textContent=m;el.hidden=false;clearTimeout(tt);tt=setTimeout(()=>el.hidden=true,2600)}
+document.querySelectorAll('[data-ask]').forEach(b=>b.onclick=()=>toast("Drafted: "+b.dataset.ask));
+
+function resize(){[MW,MH]=fit(mc);[CW,CH]=fit(cc);[SW,SH]=fit(sc);lastInt=-1}
+new ResizeObserver(resize).observe(document.querySelector('.mapbox'));
+new ResizeObserver(resize).observe(cc);
+renderRaw();renderOuts();renderFramings();setPlay();setApproved();resize();updateCF();
+$('scrub').value=S.t;requestAnimationFrame(loop);
+if(document.fonts)document.fonts.ready.then(()=>{lastInt=-1});
+})();
+</script>
