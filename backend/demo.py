@@ -35,8 +35,8 @@ class DemoFixtureProvider:
 
 
 def run_demo(runner: AgentRunner, *, approved: bool = False) -> dict:
-    scenario = json.loads((ROOT / "data/scenario_sd1024.json").read_text())
-    personas = json.loads((ROOT / "data/personas.json").read_text())
+    scenario = json.loads((ROOT / "data/scenario_sd1024.json").read_text(encoding='utf-8'))
+    personas = json.loads((ROOT / "data/personas.json").read_text(encoding='utf-8'))
     incident = scout.run(ScoutInput(incident_id=scenario["incident_id"], posts=scenario["posts"]), runner)
     # Verification is supplied scenario data here. No Gemini agent is implemented.
     drafts = drafter.run(DraftInput(**{**scenario["verification"], "claim": incident.payload.claim}), runner)

@@ -1,0 +1,51 @@
+{
+  "raw": "um okay so that's the old Arizona photo from like 2019, uh kill it, tell Poway there's no new orders and to stay off the roads, and do Spanish too for the Escondido groups",
+  "clean": "That's the old Arizona photo from 2019. Kill it. Tell Poway there are no new orders and to stay off the roads. Do Spanish too for the Escondido groups.",
+  "filler_spans": [
+    [
+      0,
+      2
+    ],
+    [
+      56,
+      58
+    ]
+  ],
+  "command_spans": [
+    [
+      11,
+      54
+    ],
+    [
+      59,
+      66
+    ],
+    [
+      105,
+      126
+    ],
+    [
+      132,
+      146
+    ]
+  ],
+  "intent": {
+    "action": "approve",
+    "languages": [
+      "en",
+      "es"
+    ],
+    "facts": [
+      "The photo is old and from Arizona",
+      "No new evacuation orders for Poway",
+      "Stay off the roads"
+    ],
+    "framing_hint": null,
+    "target_groups": [
+      0,
+      1
+    ]
+  },
+  "post_en": "Poway: no new evacuation orders. The fire has NOT crossed I-15. Stay off the roads so crews can move. The viral photo is from 2019.",
+  "post_es": "Poway: no hay nuevas órdenes de evacuación. El fuego NO ha cruzado la I-15. Eviten las calles para que los bomberos puedan pasar. La foto viral es de 2019."
+}

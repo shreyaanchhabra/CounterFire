@@ -14,7 +14,7 @@ DATA = Path(__file__).resolve().parents[1] / 'data'
 
 
 def _load(name):
-    return json.loads((DATA / name).read_text())
+    return json.loads((DATA / name).read_text(encoding='utf-8'))
 
 
 def _random(seed):

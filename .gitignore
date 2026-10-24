@@ -9,3 +9,6 @@ cache/
 node_modules/
 .gbot-state/
 artifacts/
+scripts/.node/
+data/liar/
+.claude/

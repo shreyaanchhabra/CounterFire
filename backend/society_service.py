@@ -93,8 +93,8 @@ class EpisodeManager:
         self.episodes = {}
         self.workers = {}
         self.pool = ThreadPoolExecutor(max_workers=8, thread_name_prefix='firebreak')
-        self.scenario = json.loads((ROOT / 'data/scenario_sd1024.json').read_text())
-        self.fixtures = json.loads((ROOT / 'data/grok_demo_outputs.json').read_text())
+        self.scenario = json.loads((ROOT / 'data/scenario_sd1024.json').read_text(encoding='utf-8'))
+        self.fixtures = json.loads((ROOT / 'data/grok_demo_outputs.json').read_text(encoding='utf-8'))
 
     def health(self):
         env = environment()
@@ -109,7 +109,7 @@ class EpisodeManager:
             path = self.directory / (identifier + '.json')
             if not path.exists():
                 raise KeyError(identifier)
-            data = json.loads(path.read_text())
+            data = json.loads(path.read_text(encoding='utf-8'))
             for b in data['branches'].values():
                 b['sim'] = Simulation.from_state(b['sim'])
                 if b['status'] == 'running':
@@ -123,7 +123,7 @@ class EpisodeManager:
         data['branches'] = {key: {**b, 'sim': b['sim'].export_state()} for key,b in e['branches'].items()}
         target = self.directory / (e['id'] + '.json')
         temp = target.with_suffix('.pending')
-        temp.write_text(canonical(data))
+        temp.write_text(canonical(data),encoding='utf-8')
         temp.chmod(0o600)
         temp.replace(target)
 
@@ -167,12 +167,17 @@ class EpisodeManager:
             if len(branches)>1 and len(rounds)==1:
                 comparisons=[{'branch_id':v['branch_id'],'round':v['round'],'mean_belief':v['belief'],'label':'Illustrative simulated outcome'} for v in branches]
             status=b['status']
-            pipeline=[{'agent':'scout','status':'done' if e['scout'] else 'waiting','summary':e['scout']['summary'] if e['scout'] else 'Waiting for incident clustering'},
-                {'agent':'judge','status':'done' if e['evidence'] else 'waiting','summary':(e['evidence'].get('verdict','Imported evidence') if e['evidence'] else 'Awaiting teammate Gemini packet')},
-                {'agent':'drafter','status':'done' if e['drafts'] else 'waiting','summary':'Three bilingual corrections' if e['drafts'] else 'Needs evidence and drafting'},
-                {'agent':'society','status':'running' if status=='running' else 'done' if b['sim'].round else 'waiting','summary':f'Six communities · round {b["sim"].round}'},
-                {'agent':'editor','status':'ready','summary':'Voiskey normalized input or manual edit'},
-                {'agent':'broadcaster','status':'done' if b['approval'] else 'waiting','summary':'Approved in-app correction' if b['approval'] else 'Waiting for exact-copy approval'}]
+            ev=e['evidence'] or {}
+            gem=ev.get('source','').startswith('gemini')
+            ev_wait='Awaiting Gemini verification'
+            pipeline=[{'agent':'scout','model':'grok','status':'done' if e['scout'] else 'waiting','summary':e['scout']['summary'] if e['scout'] else 'Waiting for incident clustering'},
+                {'agent':'prosecutor','model':'gemini','status':'done' if gem else 'waiting','summary':f"{len(ev.get('findings',[]))} red flags in image" if gem else ev_wait},
+                {'agent':'defender','model':'gemini','status':'done' if gem else 'waiting','summary':f"{len(ev.get('defender',[]))} supporting points" if gem else ev_wait},
+                {'agent':'judge','model':'gemini','status':'done' if ev else 'waiting','summary':(f"{ev.get('verdict')} · {ev.get('confidence')}% confident" if gem else f"{ev.get('verdict','Imported evidence')} · {ev.get('source','imported')}") if ev else ev_wait},
+                {'agent':'drafter','model':'grok','status':'done' if e['drafts'] else 'waiting','summary':'Three bilingual corrections' if e['drafts'] else 'Needs evidence and drafting'},
+                {'agent':'society','model':'grok','status':'running' if status=='running' else 'done' if b['sim'].round else 'waiting','summary':f'Six communities · round {b["sim"].round}'},
+                {'agent':'editor','model':'voiskey','status':'ready','summary':'Voiskey dictation or manual edit'},
+                {'agent':'broadcaster','model':'grok','status':'done' if b['approval'] else 'waiting','summary':'Approved in-app correction' if b['approval'] else 'Waiting for exact-copy approval'}]
             view.update(id=e['id'],mode=e['mode'],status=status,version=e['version'],error=e['error'],
                 pipeline=pipeline,drafts=copy.deepcopy(e['drafts']),evidence=copy.deepcopy(e['evidence']),
                 pending_intervention=copy.deepcopy(b['pending']),approval=copy.deepcopy(b['approval']),branches=branches,
@@ -397,7 +402,7 @@ class EpisodeManager:
             source_mode=e['recording']['source_mode'] if e['recording'] else e['mode']
             value={'id':rid,'source_mode':source_mode,'name':f'{source_mode} · {e["active"]} · {rid[:8]}',
                    'states':b['history'],'drafts':e['drafts'],'evidence':e['evidence'],'scout':e['scout'],'intervention':b['intervention']}
-            (self.directory/'recordings'/(rid+'.json')).write_text(canonical(value))
+            (self.directory/'recordings'/(rid+'.json')).write_text(canonical(value),encoding='utf-8')
             return {**self.view(identifier),'recording_id':rid}
 
     def replies(self,identifier,questions=None):
@@ -436,10 +441,10 @@ class EpisodeManager:
             return self.view(identifier)
 
     def recordings(self):
-        return [{'id':v['id'],'name':v['name'],'source_mode':v['source_mode']} for p in sorted((self.directory/'recordings').glob('*.json')) for v in [json.loads(p.read_text())]]
+        return [{'id':v['id'],'name':v['name'],'source_mode':v['source_mode']} for p in sorted((self.directory/'recordings').glob('*.json')) for v in [json.loads(p.read_text(encoding='utf-8'))]]
 
     def _read_recording(self,identifier):
         if not identifier or any(c not in '0123456789abcdef-' for c in identifier):raise KeyError('Unknown recording')
         path=self.directory/'recordings'/(identifier+'.json')
         if not path.exists():raise KeyError('Unknown recording')
-        return json.loads(path.read_text())
+        return json.loads(path.read_text(encoding='utf-8'))

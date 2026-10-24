@@ -1,8 +1,46 @@
 # Firebreak / CounterFire
 
+A misinformation response desk for county emergency comms. **Gemini** verifies the viral photo, **Grok** Bots run the town and the comms desk, and **Voiskey** lets the officer edit by voice. Everything is a fictional exercise; nothing posts to real social media.
+
+## Quick start (combined app)
+
+```bash
+python -m venv .venv
+```
+```bash
+.venv/Scripts/python -m pip install -r requirements.txt
+```
+```bash
+.venv/Scripts/python -m uvicorn backend.main:app_factory --factory --host 127.0.0.1 --port 8000
+```
+
+Copy `.env.example` to `.env` and fill in `GEMINI_API_KEY` (and the Grokbots values for live Grok mode). Open http://127.0.0.1:8000, pick **Fixture**, and press **Start episode**.
+
+### The demo flow
+
+1. **Start episode.** Gemini verifies the viral photo automatically: Prosecutor and Defender argue over the image, the Judge rules, and the dashed boxes mark the evidence (the road sign reads Loop 101, Scottsdale Rd). The result is imported as the episode's evidence packet. **Run Gemini verification** reruns it; **Analyze a new image** runs the debate live on any image (shown only, it doesn't change the episode).
+2. **Draft corrections.** Grok's Comms Bot writes A Fact check, B Action first, C Neighbor voice in English and Spanish.
+3. **Next round** twice. Six Grok community Bots play 20 personas on the 240-account map.
+4. **Voiskey.** Click the Editor's dictation box, hold **Right Alt**, and speak, for example: "Use action first. Send it to Poway, the parent groups and the influencers. Do Spanish too and publish it." Voiskey types the note; after 1.5 seconds it goes to Gemini, which rewrites the copy, sets the framing and target communities, and proposes the exact copy. Voiskey translation (Right Alt + Right Shift) also works inside the Spanish box. Backup: hold the purple mic (Gemini transcribes it), or **Replay demo dictation**.
+5. **Approve intervention.** Approval is always a click on the exact, hashed copy. Voice never approves on its own.
+6. **Next round** twice more, then **Generate replies** (Broadcaster), branches, and **Save recording**.
+
+### Gemini notes
+
+- Code lives in `backend/gemini/` (agents, client, cache in `cache/gemini/`) and `frontend/gemini.js`. Endpoints: `POST /api/gemini/episodes/{id}/evidence`, `POST /api/analyze`, `POST /api/voice`, `POST /api/draft_ask`.
+- Free tier: 5 requests/min and 20/day per model, no Google Search grounding, no image generation. `GEMINI_FALLBACK_MODEL` lists backups tried on 429/503. Warm the cache once per laptop (`scripts/gemini_warm_cache.py`, 3 calls) so episodes load the verification with no quota.
+- Scripts: `gemini_smoke_test.py`, `gemini_warm_cache.py`, `run_eval.py` (30 LIAR claims, needs about 90 calls), `generate_image.py` (realistic photo, needs billing).
+
+### Live Grok mode
+
+Live mode uses your teammate's seven native Grokbots routines. It needs, in `.env`: the Comms routine URL/key, all six community URL/key pairs, and `GROKBOTS_CALLBACK_BASE_URL`. Run the callback service on port 8766 (`backend.grokbots_return:app_factory`), expose only that port with an HTTPS tunnel (`cloudflared tunnel --url http://127.0.0.1:8766`), and add the tunnel hostname to all seven routines' allowlists. The simplest path is to run live mode on the laptop where the routines are already configured, adding `GEMINI_API_KEY` to its `.env`. Details below.
+
+---
+
+
 Grok agents for a misinformation response desk: detect a shared claim, draft bilingual responses, compare fictional audience reactions, and prepare approved corrections for an in-app feed.
 
-Implemented: the connected FastAPI desk, native Grokbots Scout/Drafter/Broadcaster, six autonomous community Bots, the social environment, exact-copy intervention approval, counterfactual branches, and durable recording/replay. Gemini verification and Voiskey transcription are teammate integrations; the desk accepts their normalized JSON. The original `firebreak-ui.html` remains available at `/baseline`.
+Implemented: the connected FastAPI desk, native Grokbots Scout/Drafter/Broadcaster, six autonomous community Bots, the social environment, exact-copy intervention approval, counterfactual branches, and durable recording/replay. Gemini verification and the Voiskey editor are wired in (see Quick start); the manual JSON import boxes remain as fallbacks. The original `firebreak-ui.html` remains available at `/baseline`.
 
 ## Run the connected app
 

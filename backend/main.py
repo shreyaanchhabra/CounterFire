@@ -9,6 +9,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
 from backend.config import ROOT
+from backend.gemini.routes import router as gemini_router
 from backend.society_service import Conflict, EpisodeManager
 
 
@@ -45,6 +46,8 @@ def create_app(manager=None):
     @app.get('/baseline')
     def baseline():return FileResponse(ROOT/'firebreak-ui.html')
     app.mount('/static',StaticFiles(directory=ROOT/'frontend'),name='static')
+    app.mount('/data',StaticFiles(directory=ROOT/'data'),name='data')
+    app.include_router(gemini_router)  # Gemini verification and Voiskey editor
     @app.get('/api/health')
     def health():return controller.health()
     @app.get('/api/scenario')
