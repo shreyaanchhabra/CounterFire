@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Annotated, Generic, Literal, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StringConstraints, field_validator, model_validator
 
 Text = Annotated[str, Field(min_length=1)]
 PostText = Annotated[str, Field(min_length=1, max_length=280)]
@@ -147,11 +147,11 @@ class ReplyQuestion(Contract):
 
 
 class BroadcastInput(Contract):
-    approved: bool
+    approved: StrictBool
     framing_key: FramingKey
     # Approved copy must retain its exact whitespace.
-    post_en: Annotated[str, Field(min_length=1, max_length=280, strip_whitespace=False)]
-    post_es: Annotated[str, Field(min_length=1, max_length=280, strip_whitespace=False)] | None = None
+    post_en: Annotated[str, StringConstraints(min_length=1, max_length=280, strip_whitespace=False)]
+    post_es: Annotated[str, StringConstraints(min_length=1, max_length=280, strip_whitespace=False)] | None = None
     verified_facts: list[Text]
     official_source: Text
     questions: list[ReplyQuestion] = Field(max_length=20)
